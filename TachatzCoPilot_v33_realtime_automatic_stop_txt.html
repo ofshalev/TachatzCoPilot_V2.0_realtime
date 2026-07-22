@@ -1,0 +1,3048 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TachatzCoPilot – אירועי זמן אמת</title>
+  <style>
+    :root { --bg:#f6f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --line:#e5e7eb; --accent:#2563eb; --bad:#b91c1c; --warn:#92400e; --ok:#166534; }
+    body { margin:0; font-family: Arial, Helvetica, sans-serif; background:var(--bg); color:var(--text); }
+    header { background:#111827; color:#fff; padding:18px 24px; }
+    header h1 { margin:0 0 6px; font-size:22px; }
+    header p { margin:0; color:#d1d5db; font-size:14px; }
+    main { max-width:1380px; margin:0 auto; padding:22px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:18px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    .row { display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
+    input[type=file] { border:1px dashed #9ca3af; padding:14px; border-radius:10px; background:#fff; min-width:360px; }
+    .operator-message-input { width:100%; min-height:150px; box-sizing:border-box; direction:rtl; text-align:right; font-family:Arial, Helvetica, sans-serif; font-size:16px; line-height:1.6; border:1px solid #cbd5e1; border-radius:10px; padding:12px; resize:vertical; }
+    button { border:0; background:var(--accent); color:#fff; padding:10px 14px; border-radius:9px; cursor:pointer; font-weight:700; }
+    button.secondary { background:#374151; }
+    button:disabled { background:#9ca3af; cursor:not-allowed; }
+    .hint { color:var(--muted); font-size:13px; line-height:1.55; margin-top:10px; }
+    .stats { display:grid; grid-template-columns: repeat(5, minmax(120px,1fr)); gap:12px; }
+    .stat { background:#f9fafb; border:1px solid var(--line); border-radius:12px; padding:12px; }
+    .stat strong { display:block; font-size:24px; margin-bottom:4px; }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td { border-bottom:1px solid var(--line); padding:9px 8px; vertical-align:top; text-align:right; }
+    th { background:#f3f4f6; position:sticky; top:0; z-index:1; }
+    .table-wrap { max-height:560px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
+    .badge { display:inline-block; padding:2px 7px; border-radius:999px; background:#e0e7ff; color:#3730a3; margin:1px; font-size:12px; }
+    .tag { display:inline-block; padding:2px 7px; border-radius:999px; background:#dcfce7; color:#166534; margin:1px; font-size:12px; }
+    .warn { color:var(--warn); }
+    .bad { color:var(--bad); }
+    .ok { color:var(--ok); }
+    textarea { width:100%; min-height:210px; direction:ltr; text-align:left; font-family: Consolas, monospace; font-size:12px; }
+    .ltr { direction:ltr; text-align:left; }
+    details { margin-top: 8px; }
+    summary { cursor:pointer; color:#374151; }
+
+    .impact-grid { display:grid; grid-template-columns: repeat(3, minmax(240px, 1fr)); gap:12px; }
+    .impact-summary { display:grid; grid-template-columns: repeat(5, minmax(120px,1fr)); gap:12px; margin: 14px 0; }
+    .pill { display:inline-block; border-radius:999px; padding:3px 8px; font-size:12px; margin:2px; background:#eef2ff; color:#25335c; white-space:nowrap; }
+    .impact-full { background:#fee2e2; color:#b91c1c; font-weight:700; }
+    .impact-major { background:#ffedd5; color:#92400e; font-weight:700; }
+    .impact-partial { background:#dbeafe; color:#1d4ed8; font-weight:700; }
+    .impact-mismatch { background:#fef9c3; color:#854d0e; font-weight:700; }
+    .impact-outside { background:#e5e7eb; color:#374151; font-weight:700; }
+    .clickable-stop, .clickable-route { cursor:pointer; user-select:none; transition:transform .08s ease, box-shadow .08s ease, background .08s ease; }
+    .clickable-stop:hover, .clickable-route:hover { transform:translateY(-1px); box-shadow:0 2px 7px rgba(0,0,0,.12); }
+    .clickable-stop { display:inline-block; border:1px solid #93c5fd; background:#eff6ff; color:#1d4ed8; border-radius:8px; padding:5px 9px; font-weight:700; direction:ltr; }
+    .clickable-stop.selected { background:#b91c1c; border-color:#b91c1c; color:#fff; }
+    .clickable-route.selected { background:#2563eb; color:#fff; font-weight:700; }
+    .selection-hint { margin:10px 0; padding:9px 12px; border-radius:9px; background:#f8fafc; border:1px solid var(--line); color:#475569; font-size:13px; }
+    .event-meta-section { margin-bottom:18px; }
+    .event-meta-grid { display:grid; grid-template-columns:repeat(2, minmax(220px, 1fr)); gap:14px; max-width:720px; }
+    .title-generator-grid { display:grid; grid-template-columns:repeat(4, minmax(170px, 1fr)); gap:14px; margin-top:16px; }
+    .field-group { display:flex; flex-direction:column; gap:7px; min-width:0; }
+    .field-group label { font-weight:700; }
+    .field-group input,
+    .field-group select { width:100%; box-sizing:border-box; border:1px solid #cbd5e1; border-radius:9px; padding:10px 12px; background:#fff; font-size:15px; color:var(--text); min-height:42px; }
+    .field-group input[readonly] { background:#f3f4f6; color:#374151; }
+    .create-area { display:flex; justify-content:flex-start; align-items:center; gap:12px; margin-top:14px; }
+    .create-area button { min-width:110px; font-size:16px; }
+    .event-title-box { margin-top:18px; padding:14px; border:1px solid var(--line); border-radius:12px; background:#f9fafb; }
+    .event-title-box label { display:block; font-weight:700; margin-bottom:8px; }
+    .event-title-box input { width:100%; box-sizing:border-box; border:1px solid #cbd5e1; border-radius:9px; padding:11px 12px; font-size:18px; font-weight:700; direction:rtl; text-align:right; background:#fff; }
+    .event-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.event-title-row input {
+  flex: 1;
+}
+
+.event-title-row input[readonly] {
+  background: #f3f4f6;
+  color: #111827;
+  cursor: default;
+}
+
+.event-title-row input:not([readonly]) {
+  background: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.event-title-actions {
+  display: flex;
+  direction: ltr;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.event-title-actions button {
+  min-width: 72px;
+}
+
+@media (max-width: 700px) {
+  .event-title-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .event-title-actions {
+    justify-content: flex-start;
+  }
+}
+
+.event-timing-note {
+  margin-top: 9px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #eef3ff;
+  color: #263b66;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: right;
+  direction: rtl;
+}
+
+    
+
+    .verification-group {
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:8px;
+    }
+
+    .event-classification-grid {
+      display:grid;
+      grid-template-columns:repeat(2, minmax(280px, 1fr));
+      gap:18px;
+      margin-top:16px;
+      align-items:start;
+    }
+
+    @media (max-width:900px) {
+      .event-classification-grid {
+        grid-template-columns:1fr;
+      }
+    }
+    .verification-option {
+      position:relative;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+      min-height:42px;
+      padding:8px 13px;
+      border:1px solid var(--line);
+      border-radius:9px;
+      background:#f9fafb;
+      cursor:pointer;
+      font-weight:600;
+      white-space:nowrap;
+      user-select:none;
+      transition:
+        background-color .15s ease,
+        border-color .15s ease,
+        box-shadow .15s ease;
+    }
+
+    .verification-option:hover {
+      border-color:#93a4bd;
+      background:#f3f6fa;
+    }
+
+    .verification-option input[type="checkbox"] {
+      position:absolute;
+      opacity:0;
+      pointer-events:none;
+      width:1px;
+      height:1px;
+    }
+    .verification-option:has(input[type="checkbox"]:checked) {
+      color:#1d4ed8;
+      border-color:#60a5fa;
+      background:#eff6ff;
+      box-shadow:0 0 0 2px rgba(37, 99, 235, .08);
+    }
+    .verification-option:focus-within {
+      outline:2px solid rgba(37, 99, 235, .35);
+      outline-offset:2px;
+    }
+    .generated-output-header {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:8px;
+    }
+    .generated-output {
+      width:100%;
+      box-sizing:border-box;
+      direction:rtl;
+      text-align:right;
+      font-family:Arial, Helvetica, sans-serif;
+      font-size:15px;
+      line-height:1.7;
+      min-height:170px;
+      background:#fff;
+    }
+
+    @media (max-width:900px) {
+      .impact-grid, .impact-summary, .stats, .title-generator-grid { grid-template-columns:1fr; }
+      .event-meta-grid { grid-template-columns:1fr; max-width:none; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>TachatzCoPilot – ניתוח אירועי זמן אמת</h1>
+  <p>הדבקת הודעת מפעיל עם קודי תחנות וקבלת תמונת השפעה ישירה מול GTFS ושילוט.</p>
+</header>
+<main>
+  <section class="card">
+    <h2>1. הזנת פרטי האירוע ויצירת כותרת ותיאור</h2>
+
+    <div class="event-meta-section">
+      <div class="event-meta-grid">
+        <div class="field-group">
+          <label for="reportingOperatorSelect">מפעיל מדווח</label>
+          <select id="reportingOperatorSelect">
+            <option value="">בחר מפעיל...</option>
+            <option value="אגד">אגד</option>
+            <option value="אפיקים">אפיקים</option>
+            <option value="דן">דן</option>
+            <option value="מטרופולין">מטרופולין</option>
+            <option value="סופרבוס">סופרבוס</option>
+            <option value="קווים">קווים</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label for="reportTimeInput">שעת דיווח</label>
+          <input id="reportTimeInput" type="time" />
+        </div>
+      </div>
+
+      <div class="title-generator-grid">
+        <div class="field-group">
+          <label for="eventCityInput">עיר</label>
+          <input id="eventCityInput" type="text" placeholder="הזן עיר" />
+        </div>
+
+        <div class="field-group">
+          <label for="eventTypeSelect">סוג האירוע</label>
+          <select id="eventTypeSelect">
+            <option value="">בחר סוג אירוע...</option>
+            <option value="אירוע ספורט">אירוע ספורט</option>
+            <option value="אירוע תרבות">אירוע תרבות</option>
+            <option value="הלוויה">הלוויה</option>
+            <option value="הפגנה">הפגנה</option>
+            <option value="חסימה משטרתית">חסימה משטרתית</option>
+            <option value="חתונה">חתונה</option>
+            <option value="טקס">טקס</option>
+            <option value="מפגע בטיחותי">מפגע בטיחותי</option>
+            <option value="עבודות">עבודות</option>
+            <option value="רכב תקוע">רכב תקוע</option>
+            <option value="תאונה">תאונה</option>
+            <option value="תקלת רמזורים">תקלת רמזורים</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label for="eventLocationInput">מיקום</label>
+          <input id="eventLocationInput" type="text" placeholder="הזן מיקום" />
+        </div>
+
+        <div class="field-group">
+          <label for="eventDateInput">תאריך</label>
+          <input id="eventDateInput" type="text" readonly />
+        </div>
+      </div>
+
+      <div class="event-classification-grid">
+        <div class="field-group">
+          <label>אימות האירוע</label>
+          <div class="verification-group" role="group" aria-label="אימות האירוע">
+            <label class="verification-option"><input type="checkbox" name="eventVerification" value="ווייז"> ווייז</label>
+            <label class="verification-option"><input type="checkbox" name="eventVerification" value="מוקד עירוני"> מוקד עירוני</label>
+            <label class="verification-option"><input type="checkbox" name="eventVerification" value="מצלמות"> מצלמות</label>
+            <label class="verification-option"><input type="checkbox" name="eventVerification" value="שיחזור"> שיחזור</label>
+            <label class="verification-option"><input type="checkbox" name="eventVerification" value="תמונות"> תמונות</label>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>סוג התגובה לאירוע</label>
+          <div class="verification-group" role="group" aria-label="סוג התגובה לאירוע">
+            <label class="verification-option"><input type="checkbox" name="eventResponseType" value="דילוג תחנות"> דילוג תחנות</label>
+            <label class="verification-option"><input type="checkbox" name="eventResponseType" value="סטייה ללא דילוג תחנות"> סטייה ללא דילוג תחנות</label>
+            <label class="verification-option"><input type="checkbox" name="eventResponseType" value="עיכובים"> עיכובים</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="eventTitleBox" class="event-title-box" style="display:block">
+      <label for="eventTitle">כותרת האירוע</label>
+
+      <div class="event-title-row">
+        <input id="eventTitle" type="text" value="" aria-label="כותרת האירוע" readonly />
+
+        <div class="event-title-actions">
+          <button id="editEventTitleBtn" type="button" class="secondary">ערוך</button>
+          <button id="copyEventTitleBtn" type="button">העתק</button>
+        </div>
+      </div>
+
+      <div id="eventTimingNote" class="event-timing-note" hidden></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2. הזנת תחנות ובחירת השפעה והשוואה מול GTFS ושילוט</h2>
+
+    <div class="impact-grid">
+      <div style="grid-column: span 1;">
+        <b>הודעת המפעיל</b>
+        <textarea
+          id="operatorMessageInput"
+          class="operator-message-input"
+          placeholder="הדבק כאן את הודעת ה-WhatsApp. אפשר להזין קודי תחנות בלבד, בכל שורה או מופרדים ברווחים/פסיקים..."
+        ></textarea>
+        <div class="hint">המערכת מחלצת כל מק״ט בן 4 או 5 ספרות. אין צורך בשם אזור או במספרי קווים.</div>
+      </div>
+
+      <div>
+        <b>GTFS stop-route matrix</b>
+        <input id="matrixFile" type="file" accept=".csv,text/csv" />
+        <div class="hint">הקובץ שנוצר על ידי <span class="ltr">build_gtfs_area.py</span>.</div>
+      </div>
+
+      <div>
+        <b>שילוט — אופציונלי</b>
+        <input id="signageFile" type="file" accept=".csv,text/csv" />
+        <div class="hint">לדוגמה <span class="ltr">exportSignsStatus.csv</span>.</div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:14px">
+      <button id="impactBtn">נתח השפעה מול GTFS</button>
+    </div>
+
+    <div id="impactStatus" class="hint">הדבק את הודעת המפעיל והעלה מטריצת GTFS.</div>
+    <div id="warnings" class="hint"></div>
+
+    <div class="selection-hint">
+      לחץ על מק״ט כדי לסמן ביטול מלא של התחנה, או לחץ על מספרי קווים בעמודת "קווים מושפעים" כדי לבחור ביטול חלקי. הודעת המפתחים תכלול רק תחנות שסומנו בביטול מלא.
+    </div>
+
+    <div id="impactSummary" class="impact-summary" style="display:none"></div>
+
+    <div class="table-wrap" style="margin-top:12px">
+      <table id="impactTable">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="create-area">
+      <button id="createDeveloperMessageBtn" type="button" disabled>צור</button>
+      <span id="selectionStatus" class="hint" style="margin:0">טרם נבחרו ביטולים.</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3. תיאור האירוע</h2>
+
+    <div class="generated-output-header">
+      <div class="hint" style="margin:0">התיאור מתעדכן לפי פרטי האירוע וקודי התחנות שהוזנו.</div>
+      <button id="copyEventDescriptionBtn" type="button">העתק</button>
+    </div>
+
+    <textarea id="eventDescriptionOutput" class="generated-output" readonly></textarea>
+  </section>
+
+  <section id="messagesSection" class="card">
+    <h2 style="margin-top:0;">4. הודעה לשילוט ולמפתחים</h2>
+
+    <div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <h3 style="margin:0;">הודעה למפתחים</h3>
+        <button id="copyAppsMessageBtn" type="button">העתק</button>
+      </div>
+
+      <textarea
+        id="appsMessageOutput"
+        rows="8"
+        readonly
+        style="
+          width:100%;
+          box-sizing:border-box;
+          direction:rtl;
+          text-align:right;
+          font-family:Arial, Helvetica, sans-serif;
+          font-size:15px;
+          line-height:1.6;
+        "
+      ></textarea>
+
+      <div id="eventTimeRanges" style="margin-top:14px;">
+        <h3 style="margin:0 0 10px;">טווחי זמן להעתקה</h3>
+        <div id="eventTimeRangesList"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="rawSection" class="card" style="display:none">
+    <h2>טקסט גולמי שהוזן</h2>
+    <textarea id="rawText" readonly></textarea>
+  </section>
+</main>
+
+<script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+const state = {
+  filesRead: [],
+  rows: [],
+  warnings: [],
+  raw: '',
+  eventTitle: '',
+  eventTiming: '',
+  realtimeSelections: new Map()
+};
+const stopCodeRe = /\b\d{4,5}\b/g;
+
+function cleanText(s) {
+  return (s || '')
+    .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[\t ]+/g, ' ')
+    .replace(/\r/g, '')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function compact(s) {
+  return String(s || '')
+    .replace(/[\s\u00a0:;.,"“”'׳״\-–—_/\\()\[\]]+/g, '')
+    .trim();
+}
+
+function normalizeStopName(s) {
+  return cleanText(s)
+    .replace(/["“”]/g, '')
+    .replace(/מק["׳']?ט\s*תחנה/g, '')
+    .replace(/שם\s*תחנה/g, '')
+    .replace(/תחנ\s*ו?ת?\s*(?:מבוטל\s*ו?ת?|זמני\s*ו?ת?|חלופי\s*ו?ת?|ח\s*ל\s*ופי\s*ו\s*ת)/g, '')
+    .replace(/תחנה\s*(?:מבוטלת|זמנית|חלופית)/g, '')
+    .replace(/מבוטל(?:ת|ות)?\s*זמנית/g, '')
+    .replace(/\(?\s*תחנה\s*\)?/g, '')
+    .replace(/^[-–—:.,/\s]+/, '')
+    .replace(/[-–—:.,/\s]+$/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function unique(arr) { return [...new Set(arr.filter(Boolean))]; }
+
+function extractRealtimeStopCodes(text) {
+  return unique((String(text || '').match(/\b\d{4,5}\b/g) || []));
+}
+
+function buildRealtimeRows(text) {
+  return extractRealtimeStopCodes(text).map(code => ({
+    source: 'הודעת WhatsApp',
+    operator: 'לא צוין',
+    route: '',
+    stop_code: code,
+    stop_name: '',
+    context: '',
+    mode: 'realtime-stop-code'
+  }));
+}
+
+function normalizeRouteToken(token) {
+  let t = String(token || '').replace(/\s+/g, '').trim();
+  // Common extraction mistake in Hebrew: the ל from "לכיוון" sticks to the route number, e.g. 84ל / 85ל / 98ל.
+  // Israeli route suffixes such as א/ב are preserved, but a trailing ל/מ/ו caused by surrounding prose is removed.
+  t = t.replace(/^(?:קו|לקו|וקו|בקו)/, '');
+  if (/^\d{1,4}[למו]$/.test(t)) t = t.slice(0, -1);
+  // Keep common route-letter suffixes; reject accidental long Hebrew suffixes.
+  if (!/^\d{1,4}[אבת]?$/.test(t)) {
+    const m = t.match(/^(\d{1,4})([אבת])?/);
+    if (m) t = m[1] + (m[2] || '');
+  }
+  return t;
+}
+
+function sortRoutes(routes) {
+  return unique(routes.map(normalizeRouteToken).filter(Boolean)).sort((a,b) => {
+    const na = parseInt(a,10), nb = parseInt(b,10);
+    if (na !== nb) return na - nb;
+    return a.localeCompare(b, 'he');
+  });
+}
+
+function parseRouteTokens(s) {
+  const tokens = [];
+  const re = /\d{1,4}(?:\s*[אבת](?![א-ת]))?/g;
+  let m;
+  while ((m = re.exec(s || '')) !== null) {
+    const token = normalizeRouteToken(m[0]);
+    if (/^\d{5}$/.test(token)) continue;       // stop code, not route
+    if (/^(40|471)$/.test(token)) continue;     // very common road numbers in these notices
+    tokens.push(token);
+  }
+  return sortRoutes(tokens);
+}
+
+function textItemsToLines(items) {
+  // PDF.js often returns each visual text item separately. Group nearby items by their Y coordinate
+  // so Superbus-style PDF rows like "36243 - כצנלסון/אנילביץ'" become one logical line.
+  const rows = [];
+  for (const item of items) {
+    const y = Math.round((item.transform && item.transform[5]) || 0);
+    let row = rows.find(r => Math.abs(r.y - y) <= 3);
+    if (!row) { row = { y, items: [] }; rows.push(row); }
+    row.items.push({ x: (item.transform && item.transform[4]) || 0, str: item.str || '' });
+  }
+  rows.sort((a,b) => b.y - a.y);
+  return rows.map(row => {
+    row.items.sort((a,b) => a.x - b.x);
+    const ltr = row.items.map(x => x.str).join(' ');
+    const rtl = row.items.slice().reverse().map(x => x.str).join(' ');
+    // Prefer the version where a 5-digit stop code is followed by Hebrew stop text, common in notices.
+    if (/\b\d{5}\b\s*[-–—]?\s*[א-ת]/.test(ltr)) return ltr;
+    if (/\b\d{5}\b\s*[-–—]?\s*[א-ת]/.test(rtl)) return rtl;
+    if (/(?:קו|קווים|קוים)\s*\d{1,4}/.test(ltr)) return ltr;
+    if (/(?:קו|קווים|קוים)\s*\d{1,4}/.test(rtl)) return rtl;
+    return rtl;
+  }).join('\n');
+}
+
+function extractRoutesFromLine(line) {
+  const raw = line || '';
+  const c = compact(raw);
+  const routes = [];
+
+  // המסלול החלופי לקו 78 / קו: 166 / קו 84 לכיוון...
+  const singlePatterns = [
+    /המסלול\s+החלופי\s+לקו\s*[:\-]?\s*(\d{1,4}(?:\s*[אבת](?![א-ת]))?)/g,
+    /(?:^|\s)(?:קו|וקו|לקו|בקו)\s*[:\-]?\s*(\d{1,4}(?:\s*[אבת](?![א-ת]))?)/g
+  ];
+  for (const re of singlePatterns) {
+    let m;
+    while ((m = re.exec(raw)) !== null) routes.push(normalizeRouteToken(m[1]));
+  }
+
+  // קווים 63, 98 לכיוון... / בקוים 78,85 בשני הכיוונים
+  const listMatch = raw.match(/(?:קווים|קוים|בקווים|בקוים|הקווים|הקוים)\s*[:\-]?\s*([^\n]+)/);
+  if (listMatch) {
+    const listPart = listMatch[1].split(/\b(?:לכיוון|ייסע|ייסעו|יסע|יסעו|בשני|בכיוון|מכיוון)\b/)[0];
+    routes.push(...parseRouteTokens(listPart));
+  }
+
+  // Compact fallback for forms like קו:166 where Hebrew word-boundary may fail.
+  // const compactSingle = c.match(/(?:^|.*?)(?:המסלולהחלופילקו|קו)(\d{1,4}[א-ת]?)/);
+  // if (compactSingle) routes.push(normalizeRouteToken(compactSingle[1]));
+
+  // Accept only lines that truly look like route context, not every sentence containing road numbers.
+  const looksLikeRouteContext = /קו|קווים|קוים|המסלול\s+החלופי/.test(raw) || /קו|קווים|קוים|המסלולהחלופי/.test(c);
+  return looksLikeRouteContext ? sortRoutes(routes) : [];
+}
+
+function isRouteHeader(line) {
+  if (!line) return false;
+  if (isCancelledHeader(line) || isAlternativeHeader(line) || isNoCancelledLine(line)) return false;
+  return extractRoutesFromLine(line).length > 0;
+}
+
+function isCancelledHeader(line) {
+  const c = compact(line);
+  if (isNoCancelledLine(line)) return false;
+  return c.includes('תחנותמבוטלות') ||
+         c.includes('תחנהמבוטלת') ||
+         c.includes('תחנותמבוטלותזמנית') ||
+         c.includes('תחנהמבוטלתזמנית') ||
+         c.includes('תחנותמבוטלותזמניות') ||
+         c.includes('תחנותמבוטלו') ||
+         /תחנ\s*ו\s*ת\s*מבוטל\s*ו\s*ת/.test(line);
+}
+
+function isAlternativeHeader(line) {
+  const c = compact(line);
+  return c.includes('תחנהחלופית') || c.includes('תחנותחלופיות') ||
+         c.includes('תחנהזמניתחלופית') || c.includes('תחנהחלופיתזמנית') ||
+         c.includes('תחנותחלופיותזמניות') || c.includes('תחנחילופיות') ||
+         /תחנ\s*ו?ת?\s*ח\s*ל\s*ופי\s*ו\s*ת/.test(line);
+}
+
+function isNoCancelledLine(line) {
+  const c = compact(line);
+  return c.includes('איןתחנותמבוטלות') || c.includes('איןתחנהמבוטלת') || c.includes('איןתחנותמבוטל');
+}
+
+function isEndOfCancelledBlock(line) {
+  const c = compact(line);
+  return isAlternativeHeader(line) || isNoCancelledLine(line) ||
+         c.includes('בברכה') || c.includes('הנהגיםמתבקשים') ||
+         c.includes('תחנהחלופית') || c.includes('תחנותחלופיות') ||
+         isRouteHeader(line);
+}
+
+function extractStopFromLine(line) {
+  const m = line.match(/\b(\d{5})\b/);
+  if (!m) return null;
+
+  const code = m[1];
+  const idx = line.indexOf(code);
+  let before = normalizeStopName(line.slice(0, idx));
+  let after = normalizeStopName(line.slice(idx + code.length));
+
+  // Remove common table/paragraph prefixes from the left side.
+  before = before
+    .replace(/^(?:תחנה|תחנות|מבוטלת|מבוטלות|זמנית|זמניות|מק"?ט|שם)+\s*/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // If the line is "31645 - stop name", use after. If it is "stop name (תחנה 31645)", use before.
+  let name = '';
+  const beforeHasHebrew = /[א-ת]/.test(before);
+  const afterHasHebrew = /[א-ת]/.test(after);
+  if (idx < 8 && afterHasHebrew) name = after;
+  else if (beforeHasHebrew) name = before;
+  else name = after;
+
+  name = normalizeStopName(name)
+    .replace(/^(?:מק"?ט|תחנה|שם תחנה)\s*/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (/^\d+$/.test(name)) name = '';
+  return { code, name };
+}
+
+
+function extractStopsFromLine(line) {
+  return String(line || '')
+    .split(/\s*[,;]\s*/)
+    .map(part => extractStopFromLine(part))
+    .filter(Boolean);
+}
+
+
+function looksLikeStopNameFragment(line) {
+  const x = normalizeStopName(line || '');
+  if (!x) return false;
+  if (!/[א-ת]/.test(x)) return false;
+  if (/\b\d{5}\b/.test(x)) return false;
+  if (isCancelledHeader(x) || isAlternativeHeader(x) || isRouteHeader(x) || isNoCancelledLine(x)) return false;
+  const c = compact(x);
+  if (c.includes('מקטתחנה') || c.includes('שםתחנה') || c.includes('תחנהמבוטלת') || c.includes('תחנותמבוטלות')) return false;
+  if (c.includes('ייסע') || c.includes('יסעו') || c.includes('נוסעים') || c.includes('המשךמסלול') || c.includes('מסלולמקורי')) return false;
+  return x.length <= 60;
+}
+
+function extractStopFromLines(lines, index) {
+  const stop = extractStopFromLine(lines[index]);
+  if (!stop) return null;
+  if (stop.name) return stop;
+
+  // Many DOCX/PDF table extractions split the code and stop name into different text items:
+  // line i:   32420
+  // line i+1: ירושלים/גורדון
+  // or sometimes the reverse order. Use nearby Hebrew-only fragments as the missing name.
+  const candidates = [];
+  for (const j of [index + 1, index - 1, index + 2, index - 2]) {
+    if (j >= 0 && j < lines.length && looksLikeStopNameFragment(lines[j])) {
+      candidates.push(normalizeStopName(lines[j]));
+    }
+  }
+  if (candidates.length) {
+    candidates.sort((a, b) => b.length - a.length);
+    stop.name = candidates[0];
+  }
+  return stop;
+}
+
+function inferOperator(fileName, text, routes) {
+  const hay = cleanText(`${fileName || ''}\n${text || ''}`);
+  const c = compact(hay).toLowerCase();
+  const cleanFile = cleanText(fileName || '').trim();
+  const fileC = compact(cleanFile).toLowerCase();
+  const baseName = cleanFile.replace(/\.[^.]+$/, '').trim();
+  const baseC = compact(baseName).toLowerCase();
+  const routeSet = new Set((routes || []).map(String));
+  const hasAll = (...rs) => rs.every(r => routeSet.has(String(r)));
+  const hasAny = (...rs) => rs.some(r => routeSet.has(String(r)));
+
+  // Primary rule: operator is inferred from the operator's filename convention,
+  // not from route numbers. Route numbers are reused by different operators.
+  // Examples:
+  //   "הודעה לנהגי..."           -> דן
+  //   "הודעת תנועה..."           -> אלקטרה אפיקים
+  //   "פתח תקווה_..."            -> מטרופולין
+  //   "פתח תקווה - עבודות..."    -> אגד
+  //   "בת-ים - שינוי מסלול..."   -> סופרבוס
+  if (baseC.startsWith('הודעהלנהגי')) return 'דן';
+  if (baseC.startsWith('הודעתתנועה')) return 'אלקטרה אפיקים';
+  if (baseName.includes('_')) return 'מטרופולין';
+  if (baseC.includes('שינוימסלול')) return 'סופרבוס';
+  if (/\s-\s/.test(baseName)) return 'אגד';
+
+  // Strong explicit text / filename rules, used when the naming convention is different.
+  // Do not identify Kavim from the Hebrew word "קווים" alone; it usually just means "routes".
+  const rules = [
+    { name:'דן', words:['דן', 'dan.co.il', 'danbus', 'חטיבתהתנועה'] },
+    { name:'אלקטרה אפיקים', words:['אפיקים', 'אלקטרהאפיקים', 'electra-afikim', 'electraafikim', 'afikim'] },
+    { name:'אגד', words:['אגד', 'egged'] },
+    { name:'סופרבוס', words:['סופרבוס', 'superbus'] },
+    { name:'מטרופולין', words:['מטרופולין', 'metropoline', 'metropline'] },
+    { name:'קווים', words:['kavim', 'kavim.co.il'] },
+    { name:'תנופה', words:['תנופה', 'tnufa'] },
+    { name:'בית שמש אקספרס', words:['ביתשמשאקספרס', 'beitshemesh'] }
+  ];
+  for (const rule of rules) {
+    if (rule.words.some(w => c.includes(compact(w).toLowerCase()))) return rule.name;
+  }
+
+  // Last-resort, sample-based fallbacks. These should disappear once GTFS agency data is connected.
+  if (hasAll('166','292')) return 'דן';
+  if ((hasAny('63','63א') && hasAny('98','98א') && hasAny('84','97'))) return 'אלקטרה אפיקים';
+  if (hasAny('249','399','950')) return 'אגד';
+
+  return 'לא זוהה';
+}
+
+function addRowsForStop(rows, sourceName, operatorName, currentRoutes, stop, context, mode) {
+  if (!stop) return;
+  for (const route of currentRoutes) {
+    rows.push({ source: sourceName, operator: operatorName || 'לא זוהה', route, stop_code: stop.code, stop_name: stop.name, context, mode });
+  }
+}
+
+function getDocumentRoutes(lines) {
+  const routes = [];
+  for (const line of lines) routes.push(...extractRoutesFromLine(line));
+  return sortRoutes(routes);
+}
+
+function extractCancelledStops(text, sourceName, operatorName) {
+  const rows = [];
+  const warnings = [];
+  const lines = cleanText(text).split('\n').map(x => x.trim()).filter(Boolean);
+  const documentRoutes = getDocumentRoutes(lines);
+  let currentRoutes = [];
+  let inCancelled = false;
+  let context = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    let routesHere = extractRoutesFromLine(line);
+
+/*
+  Some notices put the route numbers on the next line:
+
+  שינוי מסלול בקוים:
+  606,608 לכיוון תל אביב
+*/
+if (
+  !routesHere.length &&
+  /(?:קווים|קוים)\s*:?\s*$/.test(line) &&
+  i + 1 < lines.length
+) {
+  const nextLineRoutesPart = lines[i + 1]
+    .split(/\b(?:לכיוון|בשני|בכיוון|מכיוון)\b/)[0];
+
+  routesHere = parseRouteTokens(nextLineRoutesPart);
+}
+
+    if (routesHere.length && !isCancelledHeader(line) && !isAlternativeHeader(line)) {
+      currentRoutes = routesHere;
+      context = line;
+      if (inCancelled && isRouteHeader(line)) inCancelled = false;
+    }
+
+    if (isNoCancelledLine(line)) {
+      inCancelled = false;
+      continue;
+    }
+
+    if (isCancelledHeader(line)) {
+      inCancelled = true;
+      // Superbus PDFs sometimes hide/split the route header. If the whole document has exactly one route, use it.
+      if (!currentRoutes.length && documentRoutes.length === 1) currentRoutes = documentRoutes;
+      context = currentRoutes.length ? context : line;
+      const sameLineStops = extractStopsFromLine(line);
+
+if (sameLineStops.length && currentRoutes.length) {
+  for (const stop of sameLineStops) {
+    addRowsForStop(
+      rows,
+      sourceName,
+      operatorName,
+      currentRoutes,
+      stop,
+      context,
+      'same-line'
+    );
+  }
+} else if (sameLineStops.length && !currentRoutes.length) {
+  for (const stop of sameLineStops) {
+    warnings.push(
+      `${sourceName}: נמצאה תחנה ${stop.code} בשורת כותרת, אבל לא זוהה הקשר קווים.`
+    );
+  }
+}
+      continue;
+    }
+
+    if (inCancelled && isEndOfCancelledBlock(line)) {
+      inCancelled = false;
+      if (routesHere.length) currentRoutes = routesHere;
+      continue;
+    }
+
+    if (inCancelled) {
+      if (!currentRoutes.length && documentRoutes.length === 1) currentRoutes = documentRoutes;
+      const stops = extractStopsFromLine(line);
+
+if (stops.length && currentRoutes.length) {
+  for (const stop of stops) {
+    addRowsForStop(
+      rows,
+      sourceName,
+      operatorName,
+      currentRoutes,
+      stop,
+      context,
+      'cancelled-block'
+    );
+  }
+} else if (stops.length && !currentRoutes.length) {
+  for (const stop of stops) {
+    warnings.push(
+      `${sourceName}: נמצאה תחנה ${stop.code} אבל לא זוהה הקשר קווים.`
+    );
+  }
+}
+    }
+  }
+
+  if (!rows.length) warnings.push(`${sourceName}: לא זוהו תחנות מבוטלות. ייתכן שהמסמך דורש בדיקה ידנית או שהמבנה שונה.`);
+  return { rows, warnings };
+}
+
+async function readFileAsText(file) {
+  const name = file.name.toLowerCase();
+  if (name.endsWith('.txt')) return await file.text();
+  if (name.endsWith('.docx')) {
+    const buffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+    return result.value || '';
+  }
+  if (name.endsWith('.pdf')) {
+    if (!window.pdfjsLib) throw new Error('PDF.js לא נטען');
+    const buffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+    let text = '';
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const content = await page.getTextContent();
+      const pageText = textItemsToLines(content.items);
+      text += `\n\n--- PAGE ${p} ---\n` + pageText;
+    }
+    return text;
+  }
+  if (name.endsWith('.doc')) {
+    throw new Error('קובץ DOC ישן אינו נתמך בגרסת דפדפן. יש להמיר ל-DOCX או PDF.');
+  }
+  throw new Error('סוג קובץ לא נתמך');
+}
+
+
+function normalizeEventDateToken(day, month, year) {
+  const d = String(day || '').padStart(2, '0');
+  const m = String(month || '').padStart(2, '0');
+
+  let y = String(year || '');
+  if (y.length === 2) y = '20' + y;
+
+  return {
+    day: d,
+    month: m,
+    year: y,
+    full: `${d}.${m}.${y}`,
+    timestamp: new Date(Number(y), Number(m) - 1, Number(d)).getTime()
+  };
+}
+
+function validDateParts(day, month, year) {
+  const d = Number(day);
+  const m = Number(month);
+  const y = Number(year);
+
+  if (d < 1 || d > 31) return false;
+  if (m < 1 || m > 12) return false;
+  if (y < 2000 || y > 2100) return false;
+
+  const date = new Date(y, m - 1, d);
+
+  return (
+    date.getFullYear() === y &&
+    date.getMonth() === m - 1 &&
+    date.getDate() === d
+  );
+}
+
+function removeFileExtension(fileName) {
+  return cleanText(String(fileName || '').replace(/\.[^.]+$/, ''));
+}
+
+function normalizeCityName(value) {
+  const city = cleanText(value || '')
+    .replace(/[_–—־-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const cityMap = [
+    [/^תל\s*אביב(?:\s*יפו)?$/i, 'תל אביב'],
+    [/^פתח\s*תקווה$/i, 'פתח תקווה'],
+    [/^רמת\s*גן$/i, 'רמת גן'],
+    [/^בת\s*ים$/i, 'בת ים'],
+    [/^גבעת\s*שמואל$/i, 'גבעת שמואל'],
+    [/^ראשון\s*לציון$/i, 'ראשון לציון'],
+    [/^כפר\s*סבא$/i, 'כפר סבא'],
+    [/^ראש\s*העין$/i, 'ראש העין'],
+    [/^הוד\s*השרון$/i, 'הוד השרון'],
+    [/^קריית\s*אונו$/i, 'קריית אונו'],
+    [/^אור\s*יהודה$/i, 'אור יהודה'],
+    [/^נס\s*ציונה$/i, 'נס ציונה']
+  ];
+
+  for (const [pattern, normalized] of cityMap) {
+    if (pattern.test(city)) return normalized;
+  }
+
+  return city;
+}
+
+function normalizeDateExpression(value) {
+  const source = cleanText(value || '')
+    .replace(/תאריכים?|בתאריכים?/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!source) return '';
+
+  /*
+    Nonconsecutive shared-month dates:
+    19,21.7.2026
+    19+21.7.2026
+
+    Result:
+    19+21.07.2026
+  */
+  let match = source.match(
+    /\b(\d{1,2})\s*[,،+]\s*(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})\b/
+  );
+
+  if (match) {
+    const first = normalizeEventDateToken(
+      match[1],
+      match[3],
+      match[4]
+    );
+
+    const second = normalizeEventDateToken(
+      match[2],
+      match[3],
+      match[4]
+    );
+
+    if (
+      validDateParts(first.day, first.month, first.year) &&
+      validDateParts(second.day, second.month, second.year)
+    ) {
+      return (
+        `${first.day}+${second.day}.` +
+        `${first.month}.${first.year}`
+      );
+    }
+  }
+
+  /*
+    Cross-month range:
+    28.6-2.7.2026
+  */
+  match = source.match(
+    /\b(\d{1,2})[.\/](\d{1,2})\s*[-–—]\s*(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})\b/
+  );
+
+  if (match) {
+    const first = normalizeEventDateToken(
+      match[1],
+      match[2],
+      match[5]
+    );
+
+    const second = normalizeEventDateToken(
+      match[3],
+      match[4],
+      match[5]
+    );
+
+    if (
+      validDateParts(first.day, first.month, first.year) &&
+      validDateParts(second.day, second.month, second.year)
+    ) {
+      const ordered = [first, second].sort(
+        (a, b) => a.timestamp - b.timestamp
+      );
+
+      return (
+        `${ordered[0].day}.${ordered[0].month}-` +
+        `${ordered[1].day}.${ordered[1].month}.` +
+        `${ordered[1].year}`
+      );
+    }
+  }
+
+  /*
+    Shared-month range:
+    12-16.7.2026
+  */
+  match = source.match(
+    /\b(\d{1,2})\s*[-–—]\s*(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})\b/
+  );
+
+  if (match) {
+    const first = normalizeEventDateToken(
+      match[1],
+      match[3],
+      match[4]
+    );
+
+    const second = normalizeEventDateToken(
+      match[2],
+      match[3],
+      match[4]
+    );
+
+    if (
+      validDateParts(first.day, first.month, first.year) &&
+      validDateParts(second.day, second.month, second.year)
+    ) {
+      const ordered = [first, second].sort(
+        (a, b) => a.timestamp - b.timestamp
+      );
+
+      return (
+        `${ordered[0].day}-${ordered[1].day}.` +
+        `${ordered[0].month}.${ordered[0].year}`
+      );
+    }
+  }
+
+  /*
+    Complete dates or one complete date
+  */
+  const completeDates = [];
+
+  const completeDateRe =
+    /\b(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})\b/g;
+
+  let completeMatch;
+
+  while ((completeMatch = completeDateRe.exec(source)) !== null) {
+    const date = normalizeEventDateToken(
+      completeMatch[1],
+      completeMatch[2],
+      completeMatch[3]
+    );
+
+    if (
+      validDateParts(date.day, date.month, date.year) &&
+      !completeDates.some(item => item.full === date.full)
+    ) {
+      completeDates.push(date);
+    }
+  }
+
+  if (completeDates.length === 1) {
+    return completeDates[0].full;
+  }
+
+  if (completeDates.length >= 2) {
+    completeDates.sort((a, b) => a.timestamp - b.timestamp);
+
+    const first = completeDates[0];
+    const last = completeDates[completeDates.length - 1];
+
+    if (
+      first.year === last.year &&
+      first.month === last.month
+    ) {
+      return (
+        `${first.day}-${last.day}.` +
+        `${first.month}.${first.year}`
+      );
+    }
+
+    if (first.year === last.year) {
+      return (
+        `${first.day}.${first.month}-` +
+        `${last.day}.${last.month}.${first.year}`
+      );
+    }
+
+    return `${first.full}-${last.full}`;
+  }
+
+  return '';
+}
+
+function extractDatesFromFilename(fileName) {
+  const base = removeFileExtension(fileName);
+
+  const markerMatch = base.match(/תאריכים?\s*[-–—:]?\s*(.+)$/);
+
+  if (markerMatch) {
+    const normalized = normalizeDateExpression(markerMatch[1]);
+    if (normalized) return normalized;
+  }
+
+  return normalizeDateExpression(base);
+}
+
+function extractDatesFromDocument(text) {
+  const lines = cleanText(text || '')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  const dateContextPatterns = [
+    /תאריכים?/,
+    /ביום/,
+    /בימים/,
+    /החל\s+מיום/,
+    /ועד\s+יום/,
+    /בתאריך/
+  ];
+
+  for (const line of lines.slice(0, 30)) {
+    if (!dateContextPatterns.some(pattern => pattern.test(line))) continue;
+
+    const normalized = normalizeDateExpression(line);
+    if (normalized) return normalized;
+  }
+
+  return normalizeDateExpression(lines.slice(0, 20).join(' '));
+}
+
+function extractEventDates(text, fileNames) {
+  for (const fileName of fileNames || []) {
+    const fromFilename = extractDatesFromFilename(fileName);
+    if (fromFilename) return fromFilename;
+  }
+
+  return extractDatesFromDocument(text);
+}
+
+function normalizeLocation(value, options = {}) {
+  const preserveJunction = options.preserveJunction !== false;
+
+  let location = cleanText(value || '')
+    .replace(/\.[^.]+$/, '')
+    .replace(/\bתאריכים?\b.*$/g, '')
+    .replace(
+      /\b\d{1,2}[.\/]\d{1,2}(?:[.\/]\d{2,4})?(?:\s*[-+]\s*\d{1,2}(?:[.\/]\d{1,2})?(?:[.\/]\d{2,4})?)?.*$/g,
+      ''
+    )
+    .replace(/\s+לשני\s+הכיוונים\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  location = location
+    .replace(/^סגירה\s+/, '')
+    .replace(/^חסימה\s+/, '')
+    .replace(/^שינוי\s+מסלול\s+זמני\s+/, '')
+    .replace(/^שינוי\s+מסלול\s+/, '')
+    .replace(/^ברחוב\s+/, '')
+    .replace(/^ברח['׳]\s*/, '')
+    .replace(/^רחוב\s+/, '')
+    .replace(/^רח['׳]\s*/, '');
+
+  if (preserveJunction) {
+    location = location
+      .replace(/^בצומת\s+הרחובות\s+/, 'צומת ')
+      .replace(/^בצומת\s+/, 'צומת ')
+      .replace(/^צומת\s+הרחובות\s+/, 'צומת ');
+  } else {
+    location = location
+      .replace(/^בצומת\s+הרחובות\s+/, '')
+      .replace(/^בצומת\s+/, '')
+      .replace(/^צומת\s+הרחובות\s+/, '')
+      .replace(/^צומת\s+/, '');
+  }
+
+  location = location
+    .replace(/^בקטע\s+מ(?=כביש|דרך|רחוב|רח['׳])/, '')
+    .replace(/^בקטע\s+/, '')
+    .replace(/^כביש\s+מספר\s+/, 'כביש ')
+    .replace(/[,:;.\s]+$/g, '')
+    .trim();
+
+  return location;
+}
+
+function detectTitleFormat(fileName, text) {
+  const base = removeFileExtension(fileName);
+  const compactName = compact(base);
+
+  if (
+    compactName.startsWith('הודעהלנהגיהקווים') ||
+    compactName.startsWith('הודעהלנהגיהקוים') ||
+    compactName.startsWith('הודעהלנהגיקו')
+  ) {
+    return 'dan';
+  }
+
+  if (/שינוי\s+מסלול\s+זמני/.test(base)) {
+    return 'superbus';
+  }
+
+  if (compactName.startsWith('הודעתתנועה')) {
+    return 'afikim';
+  }
+
+  if (base.includes('_')) {
+    return 'metropoline';
+  }
+
+  if (
+  /(?:תאריך|תאריכים)/.test(base) ||
+  /עבודות\s+לילה/.test(base) ||
+  /צעדת\s+יום\s+ירושלים/.test(base) ||
+  /אגד/.test(text || '')
+) {
+  return 'egged';
+}
+
+  return 'unknown';
+}
+
+function parseDanTitle(fileName, text) {
+  const base = removeFileExtension(fileName);
+
+  const prefixRe =
+    /^הודעה\s+לנהגי\s+(?:הקווים|הקוים|קו(?:וים)?)\s*[-–—]\s*/;
+
+  const body = base.replace(prefixRe, '').trim();
+
+  /*
+    Supports both:
+    תאריך
+    תאריכים
+  */
+  const dateMarker = body.match(
+    /\s*[-–—]\s*(?:תאריך|תאריכים)\s*[-–—]?\s*/i
+  );
+
+  let beforeDates = body;
+  let dateExpression = '';
+
+  if (dateMarker) {
+    const markerIndex = dateMarker.index;
+
+    beforeDates = body
+      .slice(0, markerIndex)
+      .trim();
+
+    dateExpression = body
+      .slice(markerIndex + dateMarker[0].length)
+      .trim();
+  }
+
+  /*
+    First field: route number(s)
+    Second field: city
+    Remaining field: reason and location
+  */
+  const firstSeparator = beforeDates.search(/\s+[-–—]\s+/);
+
+  if (firstSeparator < 0) return null;
+
+  const afterRoutes = beforeDates
+    .slice(firstSeparator)
+    .replace(/^\s+[-–—]\s+/, '')
+    .trim();
+
+  const secondSeparator = afterRoutes.search(/\s+[-–—]\s+/);
+
+  if (secondSeparator < 0) return null;
+
+  const cityRaw = afterRoutes
+    .slice(0, secondSeparator)
+    .trim();
+
+  const reasonLocationRaw = afterRoutes
+    .slice(secondSeparator)
+    .replace(/^\s+[-–—]\s+/, '')
+    .trim();
+
+  const reasonPatterns = [
+    'עבודות ברצף',
+    'עבודות לילה',
+    'עבודות יום',
+    'עבודות'
+  ];
+
+  const filenameReason =
+  reasonPatterns.find(item =>
+    reasonLocationRaw.startsWith(item)
+  ) || 'שינוי תנועה';
+
+let reason = filenameReason;
+
+const documentText = cleanText(text || '');
+
+if (/עבודות/.test(documentText)) {
+  reason = 'עבודות';
+}
+
+let locationRaw = reasonLocationRaw
+  .slice(filenameReason.length)
+  .trim();
+
+  locationRaw = locationRaw
+    .replace(/^ברחוב\s+/, '')
+    .replace(/^ברח['׳]\s*/, '')
+    .replace(/^בדרך\s+/, '')
+    .replace(/^בצומת\s+/, 'צומת ')
+    .replace(/\s*[-–—]\s*(?:תאריך|תאריכים)\s*[-–—]?\s*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return {
+  operator: 'דן',
+  city: normalizeCityName(cityRaw),
+  reason,
+  location: normalizeLocation(locationRaw, {
+    preserveJunction: true
+  }),
+
+  timing: extractEventTiming(text),
+
+  dates:
+    normalizeDateExpression(dateExpression) ||
+    extractDatesFromDocument(text)
+};
+}
+
+function parseMetropolineTitle(fileName, text) {
+  const base = removeFileExtension(fileName);
+  const underscoreIndex = base.indexOf('_');
+
+  if (underscoreIndex < 0) return null;
+
+  const cityRaw = base.slice(0, underscoreIndex).trim();
+  let remainder = base.slice(underscoreIndex + 1).trim();
+/*
+  A second underscore separates the main street
+  from the affected section.
+
+  Example:
+  דגניה (דרום)_זאב ליבר-בני רייך
+
+  Becomes:
+  דגניה (דרום) בקטע זאב ליבר-בני רייך
+*/
+remainder = remainder.replace(/_+/, ' בקטע ');
+
+
+  const dates = normalizeDateExpression(remainder);
+
+  /*
+    Remove all recognized date expressions from the end.
+  */
+  remainder = remainder
+    .replace(
+      /\s+\d{1,2}(?:[.\/]\d{1,2})?(?:[.\/]\d{2,4})?(?:\s*[-+]\s*\d{1,2}(?:[.\/]\d{1,2})?(?:[.\/]\d{2,4})?)?\s*$/g,
+      ''
+    )
+    .trim();
+
+  /*
+    Ignore a final sequence number such as 1, 2 or 3.
+  */
+  remainder = remainder.replace(/\s+\d{1,2}\s*$/g, '').trim();
+
+  const documentTop = cleanText(text || '')
+    .split('\n')
+    .slice(0, 20)
+    .join(' ');
+
+  let reason = 'שינוי תנועה';
+
+  if (/עבודות\s+לילה/.test(documentTop)) {
+    reason = 'עבודות לילה';
+  } else if (/עבודות/.test(documentTop)) {
+    reason = 'עבודות';
+  } else if (/שוק|יריד/.test(documentTop)) {
+    reason = 'שוק';
+  } else if (/סגירה|חסימה/.test(documentTop)) {
+    reason = 'סגירה';
+  }
+
+  return {
+    operator: 'מטרופולין',
+    city: normalizeCityName(cityRaw),
+    reason,
+    location: normalizeLocation(remainder, {
+      preserveJunction: true
+    }),
+    dates: dates || extractDatesFromDocument(text)
+  };
+}
+
+function parseSuperbusTitle(fileName, text) {
+  const base = removeFileExtension(fileName);
+
+  const markerMatch = base.match(
+    /^(.+?)\s*[-–—]\s*שינוי\s+מסלול\s+זמני\s*[-–—]\s*(.+)$/i
+  );
+
+  if (!markerMatch) return null;
+
+  const cityRaw = markerMatch[1].trim();
+  let remainder = markerMatch[2].trim();
+
+  /*
+    Extract the date before removing it from the location text.
+
+    Examples:
+    19-21.7.2026
+    19,21.7.2026
+    19+21.7.2026
+  */
+  const dates =
+    normalizeDateExpression(remainder) ||
+    extractDatesFromDocument(text);
+
+  /*
+    Remove a nonconsecutive shared-month date:
+    19,21.7.2026
+    19+21.7.2026
+  */
+  remainder = remainder.replace(
+    /\s*[-–—]\s*\d{1,2}\s*[,،+]\s*\d{1,2}[.\/]\d{1,2}[.\/]\d{2,4}\s*$/i,
+    ''
+  );
+
+  /*
+    Remove a shared-month date range:
+    19-21.7.2026
+  */
+  remainder = remainder.replace(
+    /\s*[-–—]\s*\d{1,2}\s*[-–—]\s*\d{1,2}[.\/]\d{1,2}[.\/]\d{2,4}\s*$/i,
+    ''
+  );
+
+  /*
+    Remove a cross-month date range:
+    28.6-2.7.2026
+  */
+  remainder = remainder.replace(
+    /\s*[-–—]\s*\d{1,2}[.\/]\d{1,2}\s*[-–—]\s*\d{1,2}[.\/]\d{1,2}[.\/]\d{2,4}\s*$/i,
+    ''
+  );
+
+  /*
+    Remove a single complete date:
+    22.7.2026
+  */
+  remainder = remainder.replace(
+    /\s*[-–—]\s*\d{1,2}[.\/]\d{1,2}[.\/]\d{2,4}\s*$/i,
+    ''
+  );
+
+  remainder = remainder.trim();
+
+  const documentText = cleanText(text || '');
+
+  let reason = 'שינוי תנועה';
+
+  /*
+    If עבודות appears anywhere in the document,
+    use עבודות as the event reason.
+  */
+  if (/עבודות/.test(documentText)) {
+    reason = 'עבודות';
+  } else if (/^עבודות\b/.test(remainder)) {
+    reason = 'עבודות';
+  } else if (/^סגירה\b/.test(remainder)) {
+    reason = 'סגירה';
+  } else if (/^חסימה\b/.test(remainder)) {
+    reason = 'חסימה';
+  }
+
+  /*
+    Remove the reason and unnecessary road prefix
+    from the beginning of the location.
+  */
+  remainder = remainder
+    .replace(/^עבודות(?:\s+לילה|\s+יום|\s+תשתית)?\s+/, '')
+    .replace(/^סגירה\s+/, '')
+    .replace(/^חסימה\s+/, '')
+    .replace(/^בדרך\s+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return {
+    operator: 'סופרבוס',
+    city: normalizeCityName(cityRaw),
+    reason,
+    location: normalizeLocation(remainder, {
+      preserveJunction: true
+    }),
+    dates
+  };
+}
+
+function parseAfikimTitle(fileName, text) {
+  const base = removeFileExtension(fileName);
+
+  const match = base.match(
+    /^הודעת\s+תנועה\s+(.+?)\s*[-–—]\s*(.+)$/i
+  );
+
+  if (!match) return null;
+
+  const cityRaw = match[1].trim();
+  let remainder = match[2].trim();
+
+  const dates = normalizeDateExpression(remainder);
+
+  remainder = remainder
+    .replace(
+      /\s+\d{1,2}(?:[.\/]\d{1,2})?(?:[.\/]\d{2,4})?(?:\s*[-+]\s*\d{1,2}(?:[.\/]\d{1,2})?(?:[.\/]\d{2,4})?)?\s*$/g,
+      ''
+    )
+    .trim();
+
+  /*
+    Normal Afikim location:
+    ויצמן למערב בין תל חי והרצל
+    Keep only: ויצמן למערב
+  */
+  let locationRaw = remainder.split(/\s+בין\s+/)[0].trim();
+
+  const documentText = String(text || '');
+
+  let reason = 'שינוי תנועה';
+
+  if (/עבודות/.test(documentText)) {
+    reason = 'עבודות';
+  }
+
+  return {
+    operator: 'אלקטרה אפיקים',
+    city: normalizeCityName(cityRaw),
+    reason,
+    location: normalizeLocation(locationRaw, {
+      preserveJunction: true
+    }),
+    dates: dates || extractDatesFromDocument(text)
+  };
+}
+
+function parseEggedTitle(fileName, text) {
+  const base = removeFileExtension(fileName);
+
+  const citySeparator = base.search(/\s+[-–—]\s+/);
+
+  if (citySeparator < 0) return null;
+
+  const cityRaw = base.slice(0, citySeparator).trim();
+  let remainder = base
+    .slice(citySeparator)
+    .replace(/^\s+[-–—]\s+/, '')
+    .trim();
+
+  const dateMarker = remainder.match(/(?:תאריכים|תאריך)/);
+
+  let dateExpression = '';
+  let reasonLocationRaw = remainder;
+
+  if (dateMarker) {
+    reasonLocationRaw = remainder
+      .slice(0, dateMarker.index)
+      .trim();
+
+    dateExpression = remainder
+      .slice(dateMarker.index + dateMarker[0].length)
+      .trim();
+  }
+
+  const reasonPatterns = [
+    'עבודות לילה',
+    'עבודות יום',
+    'עבודות ברצף',
+    'צעדת יום ירושלים',
+    'עבודות',
+    'צעדה',
+    'אירוע'
+  ];
+
+  let reason =
+  reasonPatterns.find(item => reasonLocationRaw.startsWith(item)) ||
+  'שינוי תנועה';
+
+const documentText = cleanText(text || '');
+
+if (/עבודות/.test(documentText)) {
+  reason = 'עבודות';
+}
+
+
+let locationRaw = reasonLocationRaw.slice(reason.length).trim();
+
+locationRaw = locationRaw
+  .replace(/^בקטע\s+(?:בין\s+)?רחוב\s+/, '')
+  .replace(/^בקטע\s+/, '')
+  .replace(/^מרחוב\s+/, '')
+  .replace(/^בדרך\s+/, '')       // add this exact line
+  .replace(/^ברחוב\s+/, '')
+  .replace(/^ברח['׳]\s*/, '')
+  .replace(/^בצומת\s+הרחובות\s+/, 'צומת ')
+  .replace(/^בצומת\s+/, 'צומת ')
+.replace(/\s+(?:בתאריכים|תאריכים|בתאריך|תאריך)\s+\d{1,2}[.\-/]\d{1,2}(?:[.\-/]\d{2,4})?(?:\s*[-–]\s*\d{1,2}[.\-/]\d{1,2}(?:[.\-/]\d{2,4})?)?.*$/, '')
+  .trim();
+
+return {
+  operator: 'אגד',
+  city: normalizeCityName(cityRaw),
+  reason,
+  location: locationRaw,
+  dates:
+    normalizeDateExpression(dateExpression) ||
+    extractDatesFromDocument(text)
+};
+}
+
+function parseUnknownTitle(fileName, text) {
+  const base = removeFileExtension(fileName);
+
+  const cityCandidates = [
+    'תל אביב',
+    'פתח תקווה',
+    'רמת גן',
+    'גבעת שמואל',
+    'גבעתיים',
+    'אלעד',
+    'ירושלים',
+    'חיפה',
+    'ראשון לציון',
+    'חולון',
+    'בת ים',
+    'בני ברק',
+    'הרצליה',
+    'רעננה',
+    'כפר סבא',
+    'ראש העין',
+    'רחובות',
+    'יבנה',
+    'נתניה',
+    'אשדוד',
+    'אשקלון',
+    'לוד',
+    'רמלה',
+    'מודיעין',
+    'הוד השרון',
+    'קריית אונו',
+    'אור יהודה',
+    'יהוד',
+    'נס ציונה'
+  ];
+
+  const normalizedBase = base
+    .replace(/[_–—־-]+/g, ' ')
+    .replace(/\s+/g, ' ');
+
+  const city =
+    cityCandidates.find(candidate =>
+      normalizedBase.includes(candidate)
+    ) || '';
+
+  const topText = cleanText(text || '')
+    .split('\n')
+    .slice(0, 20)
+    .join(' ');
+
+  let reason = 'שינוי תנועה';
+
+  if (/עבודות\s+לילה/.test(topText)) {
+    reason = 'עבודות לילה';
+  } else if (/עבודות/.test(topText)) {
+    reason = 'עבודות';
+  } else if (/שוק|יריד/.test(topText)) {
+    reason = 'שוק';
+  } else if (/סגירה/.test(topText)) {
+    reason = 'סגירה';
+  } else if (/חסימה/.test(topText)) {
+    reason = 'חסימה';
+  }
+
+  let location = '';
+
+  const locationPatterns = [
+    /(?:עבודות(?:\s+לילה)?|סגירה|חסימה)\s+(?:ברחוב|ברח['׳]|בצומת)\s+([^,.\n]+)/,
+    /(?:ברחוב|ברח['׳])\s+([^,.\n]+?)(?=\s+בין|\s+בקטע|$)/,
+    /בצומת\s+([^,.\n]+)/
+  ];
+
+  for (const pattern of locationPatterns) {
+    const match = topText.match(pattern);
+    if (!match) continue;
+
+    const candidate = normalizeLocation(match[1], {
+      preserveJunction: true
+    });
+
+    if (
+      candidate &&
+      candidate.length <= 60 &&
+      !/(?:פונים|ממשיכים|נוסעים|שמאלה|ימינה|המסלול)/.test(candidate)
+    ) {
+      location = candidate;
+      break;
+    }
+  }
+
+  return {
+    operator: 'לא זוהה',
+    city: normalizeCityName(city),
+    reason,
+    location,
+    dates: extractEventDates(text, [fileName])
+  };
+}
+
+function buildEventTitle(result) {
+  if (!result) return '';
+
+  return [
+    result.city,
+    result.reason,
+    result.location,
+    result.dates
+  ]
+    .map(value => cleanText(value || ''))
+    .filter(Boolean)
+    .join(', ');
+}
+
+function generateEventTitle(fileNames, text) {
+  const files = fileNames || [];
+
+  if (!files.length) {
+    return buildEventTitle(
+      parseUnknownTitle('', text)
+    );
+  }
+
+  /*
+    The title currently represents the first uploaded announcement.
+    Multi-operator event-title consolidation can be added separately.
+  */
+  const fileName = files[0];
+  const format = detectTitleFormat(fileName, text);
+
+  let result = null;
+
+  if (format === 'dan') {
+    result = parseDanTitle(fileName, text);
+  } else if (format === 'metropoline') {
+    result = parseMetropolineTitle(fileName, text);
+  } else if (format === 'superbus') {
+    result = parseSuperbusTitle(fileName, text);
+  } else if (format === 'afikim') {
+    result = parseAfikimTitle(fileName, text);
+  } else if (format === 'egged') {
+    result = parseEggedTitle(fileName, text);
+  }
+
+  if (!result) {
+    result = parseUnknownTitle(fileName, text);
+  }
+
+  return buildEventTitle(result);
+}
+
+function consolidate(rows) {
+  const map = new Map();
+  for (const r of rows) {
+    const key = r.stop_code;
+    if (!map.has(key)) map.set(key, { stop_code:key, stop_names:new Set(), routes:new Set(), operators:new Set(), sources:new Set() });
+    const item = map.get(key);
+    if (r.stop_name) item.stop_names.add(r.stop_name);
+    if (r.route) item.routes.add(r.route);
+    item.operators.add(r.operator || 'לא זוהה');
+    item.sources.add(r.source);
+  }
+  return [...map.values()].map(x => ({
+    stop_code: x.stop_code,
+    stop_name: chooseBestStopName([...x.stop_names]),
+    routes: sortRoutes([...x.routes]),
+    operators: [...x.operators].sort((a,b) => a.localeCompare(b, 'he')),
+    sources: [...x.sources]
+  })).sort((a,b) => a.stop_code.localeCompare(b.stop_code));
+}
+
+function chooseBestStopName(names) {
+  const cleaned = unique(names.map(normalizeStopName).filter(Boolean));
+  if (!cleaned.length) return '';
+  cleaned.sort((a,b) => b.length - a.length);
+  return cleaned[0];
+}
+
+function formatCurrentEventDate() {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  return `${day}.${month}.${now.getFullYear()}`;
+}
+
+function updateRealtimeEventTitle() {
+  const city = cleanText(document.getElementById('eventCityInput').value);
+  const eventType = cleanText(document.getElementById('eventTypeSelect').value);
+  const location = cleanText(document.getElementById('eventLocationInput').value);
+  const date = cleanText(document.getElementById('eventDateInput').value);
+  state.eventTitle = [city, eventType, location, date].filter(Boolean).join(', ');
+  document.getElementById('eventTitleBox').style.display = 'block';
+  document.getElementById('eventTitle').value = state.eventTitle;
+}
+
+function getSelectedEventVerifications() {
+  return [...document.querySelectorAll(
+    'input[name="eventVerification"]:checked'
+  )].map(input => input.value);
+}
+
+function getSelectedEventResponseTypes() {
+  return [...document.querySelectorAll(
+    'input[name="eventResponseType"]:checked'
+  )].map(input => input.value);
+}
+
+function getReportedStopsForDescription() {
+  return lastImpactResults.map(result => ({
+    stop_code: result.stop_code,
+    stop_name: result.stop_name || ''
+  }));
+}
+
+function formatHebrewList(values) {
+  const cleanValues = values.filter(Boolean);
+
+  if (!cleanValues.length) return '';
+  if (cleanValues.length === 1) return cleanValues[0];
+  if (cleanValues.length === 2) {
+    return `${cleanValues[0]} ו${cleanValues[1]}`;
+  }
+
+  return (
+    cleanValues.slice(0, -1).join(', ') +
+    ` ו${cleanValues[cleanValues.length - 1]}`
+  );
+}
+
+function updateEventDescription() {
+  const operator = cleanText(document.getElementById('reportingOperatorSelect').value);
+  const location = cleanText(document.getElementById('eventLocationInput').value);
+  const eventType = cleanText(document.getElementById('eventTypeSelect').value);
+  const verifications = getSelectedEventVerifications();
+  const verification = formatHebrewList(verifications);
+  const responseTypes = getSelectedEventResponseTypes();
+
+  const operatorText = operator || '_____';
+  const locationText = location || '_____';
+  const eventTypeText = eventType || '_____';
+  const verificationText = verification || '_____';
+
+  const hasSkippedStops = responseTypes.includes('דילוג תחנות');
+  const hasDeviationWithoutSkippedStops =
+    responseTypes.includes('סטייה ללא דילוג תחנות');
+  const hasDelays = responseTypes.includes('עיכובים');
+
+  const lines = [
+    `התקבל דיווח ממפעיל ${operatorText} על חסימה ב${locationText} עקב ${eventTypeText}. אומת ב${verificationText}.`
+  ];
+
+  /*
+    Priority:
+    - דילוג תחנות overrides סטייה ללא דילוג תחנות.
+    - עיכובים can be combined with either response.
+  */
+  if (hasSkippedStops) {
+    lines.push(
+      hasDelays
+        ? 'עיכובים ודילוג תחנות:'
+        : 'דילוג תחנות:'
+    );
+
+    const reportedStops = getReportedStopsForDescription();
+
+    if (reportedStops.length) {
+      lines.push(
+        ...reportedStops.map(stop =>
+          stop.stop_name
+            ? `${stop.stop_code} - ${stop.stop_name}`
+            : stop.stop_code
+        )
+      );
+    }
+  } else if (hasDeviationWithoutSkippedStops) {
+    lines.push(
+      hasDelays
+        ? 'עיכובים וסטייה ללא דילוג תחנות.'
+        : 'סטייה ללא דילוג תחנות.'
+    );
+  } else if (hasDelays) {
+    lines.push('עיכובים.');
+  }
+
+  document.getElementById('eventDescriptionOutput').value = lines.join('\n');
+}
+
+function render() {
+  const consolidated = consolidate(state.rows);
+
+  document.getElementById('warnings').innerHTML = state.warnings.length
+    ? '<b>אזהרות:</b><br>' + state.warnings.map(w => `<div class="warn">• ${escapeHtml(w)}</div>`).join('')
+    : (state.filesRead.length ? '<span class="ok">הקבצים נותחו ללא אזהרות.</span>' : '');
+
+  const titleBox = document.getElementById('eventTitleBox');
+  const titleInput = document.getElementById('eventTitle');
+  titleBox.style.display = 'block';
+  titleInput.value = state.eventTitle || '';
+
+const timingNote = document.getElementById('eventTimingNote');
+
+if (state.eventTiming) {
+  timingNote.textContent = state.eventTiming;
+  timingNote.hidden = false;
+} else {
+  timingNote.textContent = '';
+  timingNote.hidden = true;
+}
+
+
+  document.getElementById('rawText').value = state.raw;
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+}
+
+function toCsvValue(v) {
+  const s = String(v ?? '');
+  return '"' + s.replace(/"/g,'""') + '"';
+}
+
+function exportCsv() {
+  const consolidated = consolidate(state.rows);
+  const header = ['stop_code','stop_name','affected_routes','affected_operators','sources'];
+  const lines = [header.map(toCsvValue).join(',')];
+  for (const r of consolidated) {
+    lines.push([r.stop_code, r.stop_name, r.routes.join('|'), r.operators.join('|'), r.sources.join('|')].map(toCsvValue).join(','));
+  }
+  const blob = new Blob(['\ufeff' + lines.join('\n')], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cancelled_stops_routes.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+
+let lastImpactResults = [];
+
+function normalizeHeader(h) {
+  return String(h || '').trim().replace(/^\uFEFF/, '').toLowerCase();
+}
+
+function parseCSV(text) {
+  text = String(text || '').replace(/^\uFEFF/, '');
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    const n = text[i + 1];
+    if (inQuotes) {
+      if (c === '"' && n === '"') { field += '"'; i++; }
+      else if (c === '"') inQuotes = false;
+      else field += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else if (c === '\r') { }
+      else field += c;
+    }
+  }
+  row.push(field);
+  if (row.length > 1 || row[0].trim() !== '') rows.push(row);
+  if (!rows.length) return [];
+  const headers = rows.shift().map(normalizeHeader);
+  return rows.map(r => {
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = (r[i] || '').trim());
+    return obj;
+  });
+}
+
+function readCsvFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = reject;
+    reader.readAsText(file, 'utf-8');
+  });
+}
+
+function firstValue(row, names) {
+  for (const name of names) {
+    const key = normalizeHeader(name);
+    if (row[key] !== undefined && String(row[key]).trim() !== '') return String(row[key]).trim();
+  }
+  return '';
+}
+
+function normRouteForImpact(route) {
+  return normalizeRouteToken(String(route || '')
+    .replace(/[\u200e\u200f\u202a-\u202e]/g, '')
+    .replace(/^קו/, '')
+    .replace(/["']/g, '')
+    .trim());
+}
+
+function splitRoutesForImpact(value) {
+  return unique(String(value || '')
+    .replace(/[\[\](){}]/g, ' ')
+    .split(/[;,|\n]+|\s{2,}/)
+    .flatMap(part => part.split(/\s*,\s*/))
+    .map(s => normRouteForImpact(s))
+    .filter(Boolean));
+}
+
+function buildMatrix(rows) {
+  const byStop = new Map();
+  for (const row of rows) {
+    const stopCode = firstValue(row, ['stop_code', 'stop_id', 'stopid', 'stop']);
+    const route = normRouteForImpact(firstValue(row, ['route_short_name', 'route', 'route_name', 'line', 'line_number']));
+    if (!stopCode || !route) continue;
+    if (!byStop.has(stopCode)) {
+      byStop.set(stopCode, {
+        stop_code: stopCode,
+        stop_name: firstValue(row, ['stop_name', 'name']),
+        routes: new Set(),
+        routeMeta: new Map(),
+      });
+    }
+    const item = byStop.get(stopCode);
+    item.routes.add(route);
+    item.routeMeta.set(route, {
+      route_id: firstValue(row, ['route_id']),
+      agency_name: firstValue(row, ['agency_name']),
+      agency_id: firstValue(row, ['agency_id']),
+    });
+    if (!item.stop_name) item.stop_name = firstValue(row, ['stop_name', 'name']);
+  }
+  return byStop;
+}
+
+function normalizeSignageStopCode(value) {
+  /*
+    The signage export sometimes stores the public five-digit stop code
+    with a system prefix:
+
+      1100025638 -> 25638
+      100025702  -> 25702
+
+    GTFS and operator messages use only the final five digits.
+  */
+  const digits = String(value || '')
+    .replace(/[\u200e\u200f\u202a-\u202e\uFEFF]/g, '')
+    .replace(/\.0+$/, '')
+    .replace(/\D/g, '');
+
+  if (digits.length < 5) return '';
+  return digits.slice(-5);
+}
+
+function buildSignage(rows) {
+  const byStop = new Map();
+
+  for (const row of rows) {
+    const values = Object.values(row)
+      .map(value => String(value || '').trim());
+
+    let rawStopCode = firstValue(row, [
+      'stop_code',
+      'stop_id',
+      'stationid',
+      'station_id',
+      'makat',
+      'מק״ט',
+      'מקט',
+      'קוד תחנה'
+    ]);
+
+    /*
+      Some signage exports do not provide a recognizable header for the
+      identifier column. In that case, locate a numeric identifier and
+      normalize its final five digits.
+    */
+    if (!rawStopCode) {
+      rawStopCode = values.find(value => /^\d{5,14}(?:\.0+)?$/.test(value)) || '';
+    }
+
+    const stopCode = normalizeSignageStopCode(rawStopCode);
+
+    if (stopCode) {
+      byStop.set(stopCode, row);
+    }
+  }
+
+  return byStop;
+}
+
+function classifyImpact(gtfsRoutes, matchedRoutes, unmatchedRoutes) {
+  if (!gtfsRoutes.length) return { key: 'outside', label: 'לא נמצא ב-GTFS אזורי' };
+  if (!matchedRoutes.length && unmatchedRoutes.length) return { key: 'mismatch', label: 'אי התאמה מול GTFS' };
+  if (!matchedRoutes.length) return { key: 'outside', label: 'אין התאמה' };
+  if (matchedRoutes.length === gtfsRoutes.length) return { key: 'full', label: 'פגיעה מלאה בתחנה' };
+  const ratio = matchedRoutes.length / gtfsRoutes.length;
+  if (ratio >= 0.7) return { key: 'major', label: 'פגיעה משמעותית' };
+  return { key: 'partial', label: 'פגיעה חלקית' };
+}
+
+function actionText(impact, hasSign, affectedRoutes) {
+  const routes = affectedRoutes.join(', ');
+  if (impact.key === 'full') return hasSign ? 'לעדכן שילוט: התחנה מבוטלת זמנית' : 'אין שילוט: עדכון באפליקציות/בקרה';
+  if (impact.key === 'major' || impact.key === 'partial') return hasSign ? `לעדכן שילוט לפי קווים: ${routes}` : 'אין שילוט: עדכון באפליקציות/בקרה';
+  if (impact.key === 'mismatch') return 'בדיקה ידנית: קו/תחנה לא תואמים ל-GTFS';
+  return 'בדיקה: התחנה לא נמצאה בתחום/במטריצה';
+}
+
+function messageText(impact, affectedRoutes) {
+  const routes = affectedRoutes.join(', ');
+  if (impact.key === 'full') return 'התחנה מבוטלת זמנית עקב שינוי שירות';
+  if (impact.key === 'major' || impact.key === 'partial') return `שינוי שירות זמני: הקווים ${routes} לא יעצרו בתחנה זו`;
+  if (impact.key === 'mismatch') return `נדרשת בדיקה: הקווים ${routes} לא נמצאו בתחנה לפי GTFS`;
+  return 'נדרשת בדיקה: התחנה לא נמצאה במאגר האזורי';
+}
+
+function renderImpactSummary(results) {
+  const counts = {
+    total: results.length,
+    full: results.filter(r => r.impact_key === 'full').length,
+    partial: results.filter(r => r.impact_key === 'partial' || r.impact_key === 'major').length,
+    mismatch: results.filter(r => r.impact_key === 'mismatch').length,
+    signed: results.filter(r => r.has_sign === 'כן').length,
+  };
+  const el = document.getElementById('impactSummary');
+  el.style.display = 'none';
+  el.innerHTML = `
+    <div class="stat"><strong>${counts.total}</strong>תחנות מושפעות</div>
+    <div class="stat"><strong>${counts.full}</strong>פגיעה מלאה</div>
+    <div class="stat"><strong>${counts.partial}</strong>פגיעה חלקית/משמעותית</div>
+    <div class="stat"><strong>${counts.mismatch}</strong>אי התאמות</div>
+    <div class="stat"><strong>${counts.signed}</strong>עם שילוט</div>`;
+}
+
+function getSelectedRoutes(stopCode) {
+  return state.realtimeSelections.get(String(stopCode)) || new Set();
+}
+
+function isWholeStopSelected(result) {
+  const selected = getSelectedRoutes(result.stop_code);
+  const gtfsRoutes = String(result.gtfs_routes || '')
+    .split(',')
+    .map(x => x.trim())
+    .filter(Boolean);
+  return gtfsRoutes.length > 0 && gtfsRoutes.every(route => selected.has(route));
+}
+
+function recalculateRealtimeResult(result) {
+  const gtfsRoutes = String(result.gtfs_routes || '')
+    .split(',')
+    .map(x => x.trim())
+    .filter(Boolean);
+  const selectedSet = getSelectedRoutes(result.stop_code);
+  const affectedRoutes = gtfsRoutes.filter(route => selectedSet.has(route));
+  const activeRoutes = gtfsRoutes.filter(route => !selectedSet.has(route));
+  const impact = classifyImpact(gtfsRoutes, affectedRoutes, []);
+
+  result.affected_routes = affectedRoutes.join(', ');
+  result.active_routes = activeRoutes.join(', ');
+  result.matched_routes = affectedRoutes.join(', ');
+  result.unmatched_routes = '';
+  result.affected_count = affectedRoutes.length;
+  result.impact_key = affectedRoutes.length ? impact.key : 'outside';
+  result.impact = affectedRoutes.length ? impact.label : 'טרם נבחרה השפעה';
+  result.action = affectedRoutes.length ? actionText(impact, result.has_sign === 'כן', affectedRoutes) : '';
+  result.message = affectedRoutes.length ? messageText(impact, affectedRoutes) : '';
+  return result;
+}
+
+function refreshRealtimeSelections() {
+  lastImpactResults.forEach(recalculateRealtimeResult);
+  renderImpactSummary(lastImpactResults);
+  renderImpactTable(lastImpactResults);
+  updateSelectionStatus();
+  updateEventDescription();
+  document.getElementById('appsMessageOutput').value = '';
+}
+
+function toggleWholeStop(stopCode) {
+  const result = lastImpactResults.find(item => item.stop_code === String(stopCode));
+  if (!result) return;
+  const gtfsRoutes = String(result.gtfs_routes || '').split(',').map(x => x.trim()).filter(Boolean);
+  if (!gtfsRoutes.length) return;
+  if (isWholeStopSelected(result)) state.realtimeSelections.delete(String(stopCode));
+  else state.realtimeSelections.set(String(stopCode), new Set(gtfsRoutes));
+  refreshRealtimeSelections();
+}
+
+function toggleRealtimeRoute(stopCode, route) {
+  const key = String(stopCode);
+  const selected = new Set(getSelectedRoutes(key));
+  if (selected.has(route)) selected.delete(route);
+  else selected.add(route);
+  if (selected.size) state.realtimeSelections.set(key, selected);
+  else state.realtimeSelections.delete(key);
+  refreshRealtimeSelections();
+}
+
+function updateSelectionStatus() {
+  const selectedResults = lastImpactResults.filter(r => r.affected_count > 0);
+  const selectedRoutes = selectedResults.reduce((sum, r) => sum + r.affected_count, 0);
+  const fullStops = selectedResults.filter(isWholeStopSelected).length;
+  const partialStops = selectedResults.length - fullStops;
+  const eventType = document.getElementById('eventTypeSelect').value.trim();
+  const createButton = document.getElementById('createDeveloperMessageBtn');
+  const status = document.getElementById('selectionStatus');
+
+  createButton.disabled = fullStops === 0 || !eventType;
+
+  if (!selectedResults.length) {
+    status.textContent = eventType
+      ? 'טרם נבחרו ביטולים.'
+      : 'בחר סוג אירוע ולאחר מכן סמן תחנות או קווים.';
+    return;
+  }
+
+  const selectionText = `נבחרו ${fullStops} תחנות בביטול מלא, ${partialStops} תחנות בביטול חלקי ו-${selectedRoutes} קווים בסך הכול.`;
+
+  if (!eventType) {
+    status.textContent = selectionText + ' יש לבחור סוג אירוע לפני יצירת הודעת המפתחים.';
+  } else if (!fullStops) {
+    status.textContent = selectionText + ' הודעת המפתחים נוצרת רק עבור תחנות בביטול מלא.';
+  } else {
+    status.textContent = selectionText;
+  }
+}
+
+function renderImpactTable(results) {
+  const headers = [
+    ['stop_code', 'מק״ט'],
+    ['stop_name', 'שם תחנה'],
+    ['affected_routes', 'קווים מושפעים'],
+    ['gtfs_routes', 'כל קווי GTFS בתחנה'],
+    ['active_routes', 'קווים שנשארים פעילים'],
+    ['impact', 'השפעה'],
+    ['has_sign', 'שילוט'],
+  ];
+  const cls = key => ({ full:'impact-full', major:'impact-major', partial:'impact-partial', mismatch:'impact-mismatch', outside:'impact-outside' }[key] || '');
+  document.querySelector('#impactTable thead').innerHTML = '<tr>' + headers.map(h => `<th>${h[1]}</th>`).join('') + '</tr>';
+  document.querySelector('#impactTable tbody').innerHTML = results.map(r => {
+    const gtfsRoutes = String(r.gtfs_routes || '').split(',').map(x => x.trim()).filter(Boolean);
+    const selected = getSelectedRoutes(r.stop_code);
+    const wholeSelected = isWholeStopSelected(r);
+    return `
+      <tr>
+        ${headers.map(([key]) => {
+          if (key === 'stop_code') return `<td><span class="clickable-stop ${wholeSelected ? 'selected' : ''}" data-stop-toggle="${escapeHtml(r.stop_code)}" title="לחץ לביטול התחנה לכל הקווים">${escapeHtml(r.stop_code)}</span></td>`;
+          if (key === 'affected_routes') {
+            if (!gtfsRoutes.length) return '<td></td>';
+            return `<td>${gtfsRoutes.map(route => `<span class="pill clickable-route ${selected.has(route) ? 'selected' : ''}" data-stop-code="${escapeHtml(r.stop_code)}" data-route-toggle="${escapeHtml(route)}" title="לחץ לבחירת הקו">${escapeHtml(route)}</span>`).join('')}</td>`;
+          }
+          if (key === 'impact') return `<td><span class="pill ${cls(r.impact_key)}">${escapeHtml(r.impact)}</span></td>`;
+          if (['gtfs_routes','active_routes'].includes(key)) return `<td>${String(r[key] || '').split(',').map(x => x.trim()).filter(Boolean).map(x => `<span class="pill">${escapeHtml(x)}</span>`).join('')}</td>`;
+          return `<td>${escapeHtml(r[key] || '')}</td>`;
+        }).join('')}
+      </tr>`;
+  }).join('');
+  document.querySelectorAll('[data-stop-toggle]').forEach(element => {
+    element.addEventListener('click', () => toggleWholeStop(element.dataset.stopToggle));
+  });
+  document.querySelectorAll('[data-route-toggle]').forEach(element => {
+    element.addEventListener('click', event => {
+      event.stopPropagation();
+      toggleRealtimeRoute(element.dataset.stopCode, element.dataset.routeToggle);
+    });
+  });
+}
+
+
+function renderEventTimeRanges() {
+  const list = document.getElementById('eventTimeRangesList');
+  list.innerHTML = '';
+
+  const title = state.eventTitle || '';
+  const timing = state.eventTiming || '';
+
+  const rangeDateMatch = title.match(
+  /(\d{1,2})-(\d{1,2})\.(\d{1,2})\.(\d{4})/
+);
+
+const singleDateMatch = title.match(
+  /(\d{1,2})\.(\d{1,2})\.(\d{4})/
+);
+
+const timeMatch = timing.match(
+  /מ-(\d{2}:\d{2})\s+עד\s+(\d{2}:\d{2})/
+);
+
+if ((!rangeDateMatch && !singleDateMatch) || !timeMatch) return;
+
+let startDay;
+let endDay;
+let month;
+let year;
+
+if (rangeDateMatch) {
+  startDay = Number(rangeDateMatch[1]);
+  endDay = Number(rangeDateMatch[2]);
+  month = Number(rangeDateMatch[3]);
+  year = Number(rangeDateMatch[4]);
+} else {
+  startDay = Number(singleDateMatch[1]);
+  endDay = startDay;
+  month = Number(singleDateMatch[2]);
+  year = Number(singleDateMatch[3]);
+}
+
+  const startTime = timeMatch[1];
+  const endTime = timeMatch[2];
+
+  for (let day = startDay; day <= endDay; day++) {
+    const startDate = new Date(year, month - 1, day);
+    const endDate = new Date(year, month - 1, day);
+
+    if (isOvernightRange(startTime, endTime)) {
+      endDate.setDate(endDate.getDate() + 1);
+    }
+
+    const startDateText = formatCopyDate(startDate);
+const endDateText = formatCopyDate(endDate);
+
+const row = document.createElement('div');
+
+row.style.display = 'flex';
+row.style.alignItems = 'center';
+row.style.justifyContent = 'flex-start';
+row.style.gap = '14px';
+row.style.marginBottom = '10px';
+row.style.direction = 'rtl';
+row.style.flexWrap = 'wrap';
+
+function createCopyField(label, text) {
+  const group = document.createElement('div');
+
+  group.style.display = 'flex';
+  group.style.alignItems = 'center';
+  group.style.gap = '6px';
+
+  const labelElement = document.createElement('span');
+  labelElement.textContent = label;
+  labelElement.style.fontWeight = '400';
+  labelElement.style.color = 'var(--muted)';
+
+  const value = document.createElement('span');
+  value.textContent = text;
+  value.style.direction = 'ltr';
+  value.style.fontFamily = 'Consolas, monospace';
+  value.style.fontSize = '15px';
+  value.style.fontWeight = '700';
+  value.style.padding = '8px 10px';
+  value.style.border = '1px solid var(--line)';
+  value.style.borderRadius = '8px';
+  value.style.background = '#f9fafb';
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = 'העתק';
+
+  button.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      const temp = document.createElement('textarea');
+      temp.value = text;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      temp.remove();
+    }
+
+    const originalText = button.textContent;
+    button.textContent = 'הועתק';
+
+    setTimeout(() => {
+      button.textContent = originalText;
+    }, 1200);
+  });
+
+  group.appendChild(labelElement);
+  group.appendChild(value);
+  group.appendChild(button);
+
+  return group;
+}
+
+const startDateTime =
+  `${startDateText} ${startTime}`;
+
+const endDateTime =
+  `${endDateText} ${endTime}`;
+
+row.appendChild(
+  createCopyField('התחלה:', startDateTime)
+);
+
+row.appendChild(
+  createCopyField('סיום:', endDateTime)
+);
+
+list.appendChild(row);
+  }
+}
+
+function formatCopyDate(date) {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+
+  return `${day}/${month}/${year}`;
+}
+
+
+
+async function runImpactAnalysis() {
+  const consolidated = consolidate(state.rows);
+  if (!consolidated.length) {
+    document.getElementById('impactStatus').textContent = 'לא נמצאו קודי תחנות בהודעה.';
+    return;
+  }
+  const matrixFile = document.getElementById('matrixFile').files[0];
+  const signageFile = document.getElementById('signageFile').files[0];
+  if (!matrixFile) {
+    document.getElementById('impactStatus').textContent = 'צריך להעלות stop_route_matrix.csv.';
+    return;
+  }
+  document.getElementById('impactStatus').textContent = 'קורא מטריצת GTFS...';
+  const matrixRows = parseCSV(await readCsvFile(matrixFile));
+  const signageRows = signageFile ? parseCSV(await readCsvFile(signageFile)) : [];
+  const matrix = buildMatrix(matrixRows);
+  const signage = buildSignage(signageRows);
+
+  const results = [];
+  for (const row of consolidated) {
+    const stopCode = row.stop_code;
+    const gtfs = matrix.get(stopCode);
+    const gtfsRoutes = gtfs ? [...gtfs.routes].sort((a,b) => a.localeCompare(b, 'he')) : [];
+    const affectedRoutes = [];
+    const matched = [];
+    const unmatched = [];
+    const active = [...gtfsRoutes];
+    const impact = { key: 'outside', label: 'טרם נבחרה השפעה' };
+    const hasSign = signage.size ? (signage.has(stopCode) ? 'כן' : 'לא') : 'לא נבדק';
+    results.push({
+      stop_code: stopCode,
+      stop_name: row.stop_name || (gtfs ? gtfs.stop_name : ''),
+      affected_routes: affectedRoutes.join(', '),
+      gtfs_routes: gtfsRoutes.join(', '),
+      active_routes: active.join(', '),
+      unmatched_routes: unmatched.join(', '),
+      matched_routes: matched.join(', '),
+      affected_count: matched.length,
+      gtfs_count: gtfsRoutes.length,
+      impact_key: impact.key,
+      impact: impact.label,
+      has_sign: hasSign,
+      action: actionText(impact, hasSign === 'כן', affectedRoutes),
+      message: messageText(impact, affectedRoutes),
+      affected_operators: row.operators.filter(x => x && x !== 'לא צוין').join(', '),
+      sources: row.sources.join('|'),
+    });
+  }
+  lastImpactResults = results;
+  renderImpactSummary(results);
+  renderImpactTable(results);
+  updateSelectionStatus();
+  updateEventDescription();
+  document.getElementById('appsMessageOutput').value = '';
+
+renderEventTimeRanges();
+
+  document.getElementById('impactStatus').textContent = `הסתיים. נותחו ${results.length} תחנות מול ${matrix.size} תחנות GTFS.`;
+}
+
+function createRealtimeDeveloperOutputs() {
+  const output = document.getElementById('appsMessageOutput');
+  const eventType = document.getElementById('eventTypeSelect').value.trim();
+  const fullyCancelledStops = lastImpactResults.filter(isWholeStopSelected);
+
+  if (!eventType) {
+    output.value = '';
+    document.getElementById('impactStatus').textContent = 'יש לבחור סוג אירוע לפני יצירת הודעת המפתחים.';
+    return;
+  }
+
+  if (!fullyCancelledStops.length) {
+    output.value = '';
+    document.getElementById('impactStatus').textContent = 'הודעת המפתחים נוצרת רק עבור תחנות שבוטלו לכל הקווים.';
+    return;
+  }
+
+  const header = fullyCancelledStops.length === 1
+    ? `עקב ${eventType} התחנה הבאה מבוטלת זמנית:`
+    : `עקב ${eventType} התחנות הבאות מבוטלות זמנית:`;
+
+  output.value = header + '\n' + fullyCancelledStops
+    .map(result => `${result.stop_code} - ${result.stop_name}`)
+    .join('\n');
+
+  downloadStopCodesFile(
+    fullyCancelledStops.map(result => result.stop_code),
+    'קודי_תחנות_מפתחים.txt'
+  );
+
+  document.getElementById('impactStatus').textContent =
+    `הודעת המפתחים נוצרה והורדת קובץ התחנות הופעלה אוטומטית עבור ${fullyCancelledStops.length} תחנות בביטול מלא.`;
+}
+
+function exportImpactCsv() {
+  if (!lastImpactResults.length) return;
+  const headers = Object.keys(lastImpactResults[0]);
+  const lines = [headers.map(toCsvValue).join(',')];
+  for (const r of lastImpactResults) lines.push(headers.map(h => toCsvValue(r[h])).join(','));
+  const blob = new Blob(['\ufeff' + lines.join('\n')], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tachatz_stop_impact_reaction_plan.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+
+function extractEventTiming(text) {
+  const normalized = String(text || '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\s*\n\s*/g, ' ')
+    .trim();
+
+  if (!normalized) return '';
+
+  const datePattern =
+    '(\\d{1,2})[.\\/-](\\d{1,2})(?:[.\\/-](\\d{2,4}))?';
+
+  /*
+    Examples:
+    החל מיום א' 12.7.2026 ועד יום ה' 16.7.2026
+    מ-14.6.2026 עד 27.6.2026
+    בין התאריכים 14.6.2026 ו-27.6.2026
+  */
+  const dateRangeRe = new RegExp(
+    '(?:החל\\s+מ(?:יום\\s+[^\\d]{0,15})?|מ[-־]?|בין\\s+התאריכים?\\s*)?' +
+    datePattern +
+    '\\s*' +
+    '(?:ועד|עד|ו[-־]?|[-–—])' +
+    '\\s*(?:יום\\s+[^\\d]{0,15})?' +
+    datePattern,
+    'i'
+  );
+
+  const dateRangeMatch = normalized.match(dateRangeRe);
+
+  let startDate = null;
+  let endDate = null;
+
+  if (dateRangeMatch) {
+    startDate = {
+      day: Number(dateRangeMatch[1]),
+      month: Number(dateRangeMatch[2]),
+      year: normalizeTimingYear(dateRangeMatch[3])
+    };
+
+    endDate = {
+      day: Number(dateRangeMatch[4]),
+      month: Number(dateRangeMatch[5]),
+      year: normalizeTimingYear(
+        dateRangeMatch[6] || dateRangeMatch[3]
+      )
+    };
+  } else {
+    /*
+      Fallback for a single event date.
+    */
+    const singleDateRe = new RegExp(datePattern);
+    const singleDateMatch = normalized.match(singleDateRe);
+
+    if (singleDateMatch) {
+      startDate = {
+        day: Number(singleDateMatch[1]),
+        month: Number(singleDateMatch[2]),
+        year: normalizeTimingYear(singleDateMatch[3])
+      };
+
+      endDate = { ...startDate };
+    }
+  }
+
+  const dateLabel = formatTimingDateRange(startDate, endDate);
+
+  /*
+    Examples:
+    משעה 22:00 ועד 05:00
+    בין השעות 22:00-05:00
+    בשעות 22:00 עד 05:00
+  */
+  let extractedStartTime = '';
+  let extractedEndTime = '';
+
+const hoursContextMatch = normalized.match(
+  /(?:בין\s*השעות|משעה|בשעה|מהשעה|בשעות|החל\s*בשעה)[\s\S]{0,40}?((?:\d{1,2})\s*:\s*(?:\d{2}))[\s\S]{0,40}?((?:\d{1,2})\s*:\s*(?:\d{2}))/i
+);
+
+ if (hoursContextMatch) {
+  extractedStartTime = hoursContextMatch[1];
+  extractedEndTime = hoursContextMatch[2];
+ } else {
+  /*
+    General PDF fallback:
+    Find two clock values appearing close together.
+  */
+  const nearbyTimesMatch = normalized.match(
+    /(\d{1,2}:\d{2})[^0-9]{0,60}(\d{1,2}:\d{2})/
+  );
+
+  if (nearbyTimesMatch) {
+    extractedStartTime = nearbyTimesMatch[1];
+    extractedEndTime = nearbyTimesMatch[2];
+  }
+ }
+
+  const isContinuous =
+    /\bברצף\b/i.test(normalized) ||
+    /באופן\s+רציף/i.test(normalized) ||
+    /ללא\s+הפסקה/i.test(normalized);
+
+  if (isContinuous) {
+  return 'ברצף';
+ }
+
+  if (extractedStartTime && extractedEndTime) {
+  let startTime = normalizeTimingHour(extractedStartTime);
+  let endTime = normalizeTimingHour(extractedEndTime);
+
+  /*
+    Extra protection against RTL reversal:
+    for an overnight event, evening is normally the start
+    and morning is normally the end.
+  */
+ const startMinutes =
+  Number(startTime.split(':')[0]) * 60 +
+  Number(startTime.split(':')[1]);
+
+const endMinutes =
+  Number(endTime.split(':')[0]) * 60 +
+  Number(endTime.split(':')[1]);
+
+const overnightContext =
+  /עבודות\s+לילה/i.test(normalized) ||
+  /מדי\s+לילה/i.test(normalized) ||
+  /בכל\s+לילה/i.test(normalized) ||
+  /בבוקר(?:\s+למחרת)?/i.test(normalized) ||
+  /למחרת/i.test(normalized);
+
+if (overnightContext) {
+  /*
+    For overnight work, the evening time should come first
+    and the morning time second.
+  */
+  const startHour = Number(startTime.split(':')[0]);
+  const endHour = Number(endTime.split(':')[0]);
+
+  if (startHour < 12 && endHour >= 12) {
+    [startTime, endTime] = [endTime, startTime];
+  }
+} else if (startMinutes > endMinutes) {
+  /*
+    For a normal same-day range, put the earlier time first.
+  */
+  [startTime, endTime] = [endTime, startTime];
+}
+
+    const isNightly =
+      /מדי\s+לילה/i.test(normalized) ||
+      /בכל\s+לילה/i.test(normalized) ||
+      /עבודות\s+לילה/i.test(normalized) ||
+      /בבוקר\s+למחרת/i.test(normalized) ||
+      /למחרת/i.test(normalized) ||
+      isOvernightRange(startTime, endTime);
+
+    const hasMultipleNights =
+  /\(\s*\d+\s*לילות?\s*\)/i.test(normalized) ||
+  /\b\d+\s*לילות?\b/i.test(normalized) ||
+  /בימים\s+.+?\s+עד\s+.+?\s+\d{1,2}\s*[-–—]\s*\d{1,2}[./]\d{1,2}/i.test(normalized) ||
+  (
+    startDate &&
+    endDate &&
+    (
+      startDate.day !== endDate.day ||
+      startDate.month !== endDate.month ||
+      startDate.year !== endDate.year
+    )
+  );
+
+const repetitionLabel =
+  isNightly && hasMultipleNights
+    ? 'מדי לילה '
+    : '';
+
+    return `${repetitionLabel}מ-${startTime} עד ${endTime}`;
+  }
+
+  return '';
+}
+
+
+function normalizeTimingYear(year) {
+  if (!year) return null;
+
+  let value = Number(year);
+
+  if (value < 100) {
+    value += 2000;
+  }
+
+  return value;
+}
+
+function normalizeTimingHour(value) {
+  const match = String(value || '').match(/^(\d{1,2}):(\d{2})$/);
+
+  if (!match) return value;
+
+  return `${String(Number(match[1])).padStart(2, '0')}:${match[2]}`;
+}
+
+function isOvernightRange(startTime, endTime) {
+  const toMinutes = value => {
+    const [hours, minutes] = value.split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  return toMinutes(endTime) <= toMinutes(startTime);
+}
+
+function formatTimingDateRange(startDate, endDate) {
+  if (!startDate) return '';
+
+  if (
+    !endDate ||
+    (
+      startDate.day === endDate.day &&
+      startDate.month === endDate.month &&
+      startDate.year === endDate.year
+    )
+  ) {
+    return `${startDate.day}.${startDate.month}`;
+  }
+
+  if (
+    startDate.month === endDate.month &&
+    startDate.year === endDate.year
+  ) {
+    return `${startDate.day}-${endDate.day}.${endDate.month}`;
+  }
+
+  return (
+    `${startDate.day}.${startDate.month}` +
+    `-${endDate.day}.${endDate.month}`
+  );
+}
+
+
+function downloadStopCodesFile(stopCodes, fileName = 'stop_codes.txt') {
+  const cleanCodes = [...new Set(
+    (stopCodes || [])
+      .map(code => String(code || '').trim())
+      .filter(Boolean)
+  )];
+
+  if (!cleanCodes.length) {
+    console.warn('לא נמצאו קודי תחנות ליצירת הקובץ');
+    return false;
+  }
+
+  const content = cleanCodes.join('\r\n');
+  const blob = new Blob(['\uFEFF' + content], {
+    type: 'text/plain;charset=utf-8'
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = fileName;
+  link.style.display = 'none';
+
+  document.body.appendChild(link);
+
+  link.dispatchEvent(new MouseEvent('click', {
+    bubbles: true,
+    cancelable: true,
+    view: window
+  }));
+
+  setTimeout(() => {
+    link.remove();
+    URL.revokeObjectURL(url);
+  }, 3000);
+
+  return true;
+}
+
+
+
+document.getElementById('impactBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('impactBtn');
+  const operatorMessage = document.getElementById('operatorMessageInput').value;
+  const matrixFile = document.getElementById('matrixFile').files[0];
+
+  state.filesRead = [];
+  state.rows = [];
+  state.warnings = [];
+  state.raw = cleanText(operatorMessage);
+  state.eventTiming = '';
+  state.realtimeSelections = new Map();
+  lastImpactResults = [];
+  document.getElementById('appsMessageOutput').value = '';
+  document.getElementById('selectionStatus').textContent = 'טרם נבחרו ביטולים.';
+  document.getElementById('createDeveloperMessageBtn').disabled = true;
+
+  if (!state.raw) {
+    state.warnings.push('לא הוזנה הודעת מפעיל.');
+    render();
+    document.getElementById('impactStatus').textContent = 'יש להדביק את הודעת ה-WhatsApp.';
+    return;
+  }
+
+  if (!matrixFile) {
+    state.warnings.push('לא הועלתה מטריצת GTFS.');
+    render();
+    document.getElementById('impactStatus').textContent = 'יש להעלות stop_route_matrix.csv.';
+    return;
+  }
+
+  updateRealtimeEventTitle();
+  updateEventDescription();
+
+  state.rows = buildRealtimeRows(state.raw);
+
+  if (!state.rows.length) {
+    state.warnings.push('לא נמצאו קודי תחנות בני 4 או 5 ספרות בהודעה.');
+    render();
+    document.getElementById('impactStatus').textContent = 'לא נמצאו קודי תחנות לניתוח.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'מנתח...';
+  document.getElementById('impactStatus').textContent = `נמצאו ${state.rows.length} קודי תחנות. משווה מול GTFS...`;
+
+  try {
+    render();
+    await runImpactAnalysis();
+  } catch (err) {
+    state.warnings.push(`שגיאת מערכת: ${err.message}`);
+    render();
+    document.getElementById('impactStatus').textContent = `שגיאה בניתוח: ${err.message}`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'נתח השפעה מול GTFS';
+  }
+});
+
+
+document.getElementById('createDeveloperMessageBtn').addEventListener('click', createRealtimeDeveloperOutputs);
+
+
+document
+  .getElementById('editEventTitleBtn')
+  .addEventListener('click', () => {
+    const input = document.getElementById('eventTitle');
+    const button = document.getElementById('editEventTitleBtn');
+
+    if (input.readOnly) {
+      input.readOnly = false;
+      button.textContent = 'שמור';
+      input.focus();
+      input.select();
+    } else {
+      input.readOnly = true;
+      button.textContent = 'ערוך';
+
+      // Preserve the manually corrected title during this analysis session.
+      state.eventTitle = input.value.trim();
+    }
+  });
+
+document
+  .getElementById('copyEventTitleBtn')
+  .addEventListener('click', async () => {
+    const input = document.getElementById('eventTitle');
+    const button = document.getElementById('copyEventTitleBtn');
+    const title = input.value.trim();
+
+    if (!title) return;
+
+    try {
+      await navigator.clipboard.writeText(title);
+    } catch (err) {
+      input.focus();
+      input.select();
+      document.execCommand('copy');
+    }
+
+    const originalText = button.textContent;
+    button.textContent = 'הועתק';
+
+    setTimeout(() => {
+      button.textContent = originalText;
+    }, 1200);
+  });
+
+
+document
+  .getElementById('copyAppsMessageBtn')
+  .addEventListener('click', async () => {
+    const textarea = document.getElementById('appsMessageOutput');
+    const button = document.getElementById('copyAppsMessageBtn');
+    const message = textarea.value.trim();
+
+    if (!message) return;
+
+    try {
+      await navigator.clipboard.writeText(message);
+    } catch (err) {
+      textarea.focus();
+      textarea.select();
+      document.execCommand('copy');
+    }
+
+    const originalText = button.textContent;
+    button.textContent = 'הועתק';
+
+    setTimeout(() => {
+      button.textContent = originalText;
+    }, 1200);
+  });
+
+
+document.getElementById('eventTypeSelect').addEventListener('change', () => {
+  updateRealtimeEventTitle();
+  updateEventDescription();
+  document.getElementById('appsMessageOutput').value = '';
+  updateSelectionStatus();
+});
+
+document.getElementById('eventCityInput').addEventListener('input', updateRealtimeEventTitle);
+
+document.getElementById('eventLocationInput').addEventListener('input', () => {
+  updateRealtimeEventTitle();
+  updateEventDescription();
+});
+
+document.getElementById('reportingOperatorSelect').addEventListener('change', updateEventDescription);
+document.getElementById('operatorMessageInput').addEventListener('input', updateEventDescription);
+
+document.querySelectorAll('input[name="eventVerification"]').forEach(input => {
+  input.addEventListener('change', updateEventDescription);
+});
+
+document.querySelectorAll('input[name="eventResponseType"]').forEach(input => {
+  input.addEventListener('change', updateEventDescription);
+});
+
+document.getElementById('copyEventDescriptionBtn').addEventListener('click', async () => {
+  const textarea = document.getElementById('eventDescriptionOutput');
+  const button = document.getElementById('copyEventDescriptionBtn');
+  const value = textarea.value.trim();
+
+  if (!value) return;
+
+  try {
+    await navigator.clipboard.writeText(value);
+  } catch (err) {
+    textarea.focus();
+    textarea.select();
+    document.execCommand('copy');
+  }
+
+  const originalText = button.textContent;
+  button.textContent = 'הועתק';
+
+  setTimeout(() => {
+    button.textContent = originalText;
+  }, 1200);
+});
+
+document.getElementById('eventDateInput').value = formatCurrentEventDate();
+updateRealtimeEventTitle();
+updateEventDescription();
+render();
+</script>
+</body>
+</html>
