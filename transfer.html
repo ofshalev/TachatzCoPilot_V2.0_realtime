@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TachatzCoPilot – העברת קודי תחנות</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #172033;
+      --muted: #667085;
+      --line: #dfe5ee;
+      --accent: #2563eb;
+      --accent-dark: #1d4ed8;
+      --success: #166534;
+      --success-bg: #dcfce7;
+      --warning: #92400e;
+      --warning-bg: #fef3c7;
+      --danger: #b42318;
+      --danger-bg: #fee4e2;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    header {
+      background: #111827;
+      color: white;
+      padding: 18px 24px;
+    }
+
+    header h1 {
+      margin: 0 0 5px;
+      font-size: 23px;
+    }
+
+    header p {
+      margin: 0;
+      color: #d1d5db;
+      font-size: 14px;
+    }
+
+    main {
+      width: min(980px, calc(100% - 30px));
+      margin: 24px auto;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      padding: 19px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 8px rgba(16, 24, 40, 0.05);
+    }
+
+    h2, h3 { margin-top: 0; }
+
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 7px;
+    }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 11px 12px;
+      font: inherit;
+      background: white;
+    }
+
+    textarea {
+      min-height: 190px;
+      direction: ltr;
+      text-align: left;
+      font-family: Consolas, "Courier New", monospace;
+      line-height: 1.55;
+      resize: vertical;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .field { margin-bottom: 15px; }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    button {
+      border: 0;
+      border-radius: 9px;
+      padding: 10px 15px;
+      color: white;
+      background: var(--accent);
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:hover { background: var(--accent-dark); }
+    button.secondary { background: #475467; }
+    button.secondary:hover { background: #344054; }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .status {
+      display: none;
+      margin-top: 13px;
+      padding: 10px 12px;
+      border-radius: 9px;
+      line-height: 1.5;
+    }
+
+    .status.show { display: block; }
+    .status.success { color: var(--success); background: var(--success-bg); }
+    .status.warning { color: var(--warning); background: var(--warning-bg); }
+    .status.error { color: var(--danger); background: var(--danger-bg); }
+
+    .latest-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 13px;
+    }
+
+    .meta-box {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f9fafb;
+      padding: 10px 12px;
+    }
+
+    .meta-box span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .meta-box strong {
+      display: block;
+      font-size: 15px;
+      overflow-wrap: anywhere;
+    }
+
+    #latestCodes {
+      background: #f8fafc;
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .setup {
+      border-right: 4px solid #f59e0b;
+    }
+
+    code {
+      direction: ltr;
+      display: inline-block;
+      background: #eef2f6;
+      border-radius: 5px;
+      padding: 2px 5px;
+    }
+
+    @media (max-width: 650px) {
+      .latest-meta { grid-template-columns: 1fr; }
+      button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>TachatzCoPilot – העברת קודי תחנות</h1>
+  <p>שמירה זמנית של רשימת התחנות והורדת קובץ TXT במחשב המרוחק</p>
+</header>
+
+<main>
+  <section id="setupCard" class="card setup" hidden>
+    <h2>נדרשת הגדרה חד-פעמית</h2>
+    <p>
+      יש להחליף בקובץ את הערך
+      <code>PASTE_FIREBASE_DATABASE_URL_HERE</code>
+      בכתובת Firebase Realtime Database שלך.
+    </p>
+    <p class="small">
+      דוגמה: <code>https://your-project-default-rtdb.europe-west1.firebasedatabase.app</code>
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>שליחה מהמחשב הראשי</h2>
+
+    <div class="field">
+      <label for="eventTitle">כותרת האירוע — אופציונלי</label>
+      <input id="eventTitle" type="text" placeholder="לדוגמה: לוד, חסימות, כצנלסון והרצל" />
+    </div>
+
+    <div class="field">
+      <label for="codesInput">קודי תחנות</label>
+      <textarea id="codesInput" placeholder="35102&#10;35103&#10;30958"></textarea>
+      <div class="small">אפשר להדביק קודים בשורות, עם פסיקים או עם רווחים. רק מספרים בני 4–8 ספרות יישמרו.</div>
+    </div>
+
+    <div class="row">
+      <button id="sendBtn" type="button">העלה את הרשימה האחרונה</button>
+      <button id="clearInputBtn" type="button" class="secondary">נקה</button>
+    </div>
+
+    <div id="sendStatus" class="status"></div>
+  </section>
+
+  <section class="card">
+    <h2>הרשימה האחרונה</h2>
+
+    <div class="latest-meta">
+      <div class="meta-box">
+        <span>כותרת האירוע</span>
+        <strong id="latestTitle">טרם נטענה רשימה</strong>
+      </div>
+      <div class="meta-box">
+        <span>מועד העלאה</span>
+        <strong id="latestTime">—</strong>
+      </div>
+    </div>
+
+    <textarea id="latestCodes" readonly placeholder="הרשימה האחרונה תופיע כאן"></textarea>
+
+    <div class="row" style="margin-top: 12px;">
+      <button id="downloadBtn" type="button" disabled>הורד TXT</button>
+      <button id="copyBtn" type="button" class="secondary" disabled>העתק קודים</button>
+      <button id="refreshBtn" type="button" class="secondary">רענן</button>
+    </div>
+
+    <div id="readStatus" class="status"></div>
+    <p class="small">העמוד בודק אוטומטית כל 10 שניות אם הועלתה רשימה חדשה.</p>
+  </section>
+</main>
+
+<script>
+  /*
+    SETUP:
+    Replace the value below with the URL shown in:
+    Firebase Console → Realtime Database
+  */
+  const FIREBASE_DATABASE_URL =
+    'https://tachatz-copilot-default-rtdb.europe-west1.firebasedatabase.app/';
+
+  const RECORD_PATH = 'tachatz-transfer/latest';
+  const AUTO_REFRESH_MS = 10000;
+  const STALE_AFTER_MS = 60 * 60 * 1000;
+
+  let latestRecord = null;
+
+  const el = id => document.getElementById(id);
+
+  function databaseConfigured() {
+    return FIREBASE_DATABASE_URL &&
+      !FIREBASE_DATABASE_URL.includes('PASTE_FIREBASE') &&
+      /^https:\/\//i.test(FIREBASE_DATABASE_URL);
+  }
+
+  function endpoint() {
+    return FIREBASE_DATABASE_URL.replace(/\/+$/, '') +
+      '/' + RECORD_PATH + '.json';
+  }
+
+  function setStatus(element, message, type) {
+    element.textContent = message || '';
+    element.className = 'status' + (message ? ` show ${type}` : '');
+  }
+
+  function normalizeCodes(value) {
+    const matches = String(value || '').match(/\b\d{4,8}\b/g) || [];
+    return [...new Set(matches)];
+  }
+
+  function formatIsraelDateTime(timestamp) {
+    if (!timestamp) return '—';
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) return '—';
+
+    return new Intl.DateTimeFormat('he-IL', {
+      dateStyle: 'short',
+      timeStyle: 'medium',
+      timeZone: 'Asia/Jerusalem'
+    }).format(date);
+  }
+
+  async function saveLatest() {
+    const sendButton = el('sendBtn');
+    const title = el('eventTitle').value.trim();
+    const codes = normalizeCodes(el('codesInput').value);
+
+    if (!databaseConfigured()) {
+      setStatus(el('sendStatus'), 'Firebase עדיין לא הוגדר בקובץ.', 'error');
+      return;
+    }
+
+    if (!codes.length) {
+      setStatus(el('sendStatus'), 'לא נמצאו קודי תחנות תקינים.', 'warning');
+      return;
+    }
+
+    const record = {
+      title: title || 'ללא כותרת',
+      stop_codes: codes,
+      created_at: new Date().toISOString()
+    };
+
+    sendButton.disabled = true;
+    sendButton.textContent = 'מעלה...';
+    setStatus(el('sendStatus'), '', '');
+
+    try {
+      const response = await fetch(endpoint(), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(record)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      setStatus(
+        el('sendStatus'),
+        `הרשימה הועלתה בהצלחה: ${codes.length} קודי תחנות.`,
+        'success'
+      );
+
+      await loadLatest(false);
+    } catch (error) {
+      setStatus(
+        el('sendStatus'),
+        `ההעלאה נכשלה: ${error.message}. בדוק את כתובת Firebase ואת כללי הגישה.`,
+        'error'
+      );
+    } finally {
+      sendButton.disabled = false;
+      sendButton.textContent = 'העלה את הרשימה האחרונה';
+    }
+  }
+
+  async function loadLatest(showLoading = true) {
+    if (!databaseConfigured()) {
+      el('setupCard').hidden = false;
+      setStatus(el('readStatus'), 'Firebase עדיין לא הוגדר בקובץ.', 'warning');
+      return;
+    }
+
+    if (showLoading) {
+      setStatus(el('readStatus'), 'טוען את הרשימה האחרונה...', 'warning');
+    }
+
+    try {
+      const response = await fetch(endpoint(), {
+        method: 'GET',
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const record = await response.json();
+
+      if (!record || !Array.isArray(record.stop_codes)) {
+        latestRecord = null;
+        renderLatest();
+        setStatus(el('readStatus'), 'עדיין לא הועלתה רשימה.', 'warning');
+        return;
+      }
+
+      latestRecord = record;
+      renderLatest();
+
+      const age = Date.now() - new Date(record.created_at).getTime();
+
+      if (age > STALE_AFTER_MS) {
+        setStatus(
+          el('readStatus'),
+          'הרשימה בת יותר משעה. כדאי לוודא שזו הרשימה הנכונה לפני ההורדה.',
+          'warning'
+        );
+      } else {
+        setStatus(el('readStatus'), 'הרשימה מעודכנת.', 'success');
+      }
+    } catch (error) {
+      setStatus(
+        el('readStatus'),
+        `לא ניתן לקרוא את הרשימה: ${error.message}.`,
+        'error'
+      );
+    }
+  }
+
+  function renderLatest() {
+    if (!latestRecord) {
+      el('latestTitle').textContent = 'טרם נטענה רשימה';
+      el('latestTime').textContent = '—';
+      el('latestCodes').value = '';
+      el('downloadBtn').disabled = true;
+      el('copyBtn').disabled = true;
+      return;
+    }
+
+    const codes = normalizeCodes(latestRecord.stop_codes.join('\n'));
+
+    el('latestTitle').textContent = latestRecord.title || 'ללא כותרת';
+    el('latestTime').textContent = formatIsraelDateTime(latestRecord.created_at);
+    el('latestCodes').value = codes.join('\n');
+    el('downloadBtn').disabled = !codes.length;
+    el('copyBtn').disabled = !codes.length;
+  }
+
+  function downloadTxt() {
+    if (!latestRecord) return;
+
+    const codes = normalizeCodes(latestRecord.stop_codes.join('\n'));
+    if (!codes.length) return;
+
+    const content = '\uFEFF' + codes.join('\r\n');
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = 'קודי_תחנות_מפתחים.txt';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function copyLatest() {
+    const text = el('latestCodes').value.trim();
+    if (!text) return;
+
+    const button = el('copyBtn');
+
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      el('latestCodes').focus();
+      el('latestCodes').select();
+      document.execCommand('copy');
+    }
+
+    const original = button.textContent;
+    button.textContent = 'הועתק';
+    setTimeout(() => button.textContent = original, 1200);
+  }
+
+  el('sendBtn').addEventListener('click', saveLatest);
+
+  el('clearInputBtn').addEventListener('click', () => {
+    el('eventTitle').value = '';
+    el('codesInput').value = '';
+    setStatus(el('sendStatus'), '', '');
+  });
+
+  el('downloadBtn').addEventListener('click', downloadTxt);
+  el('copyBtn').addEventListener('click', copyLatest);
+  el('refreshBtn').addEventListener('click', () => loadLatest(true));
+
+  if (!databaseConfigured()) {
+    el('setupCard').hidden = false;
+  }
+
+  loadLatest(false);
+  setInterval(() => loadLatest(false), AUTO_REFRESH_MS);
+</script>
+</body>
+</html>
