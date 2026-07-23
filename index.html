@@ -207,6 +207,46 @@
       .impact-grid, .impact-summary, .stats, .title-generator-grid { grid-template-columns:1fr; }
       .event-meta-grid { grid-template-columns:1fr; max-width:none; }
     }
+
+
+.operator-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+.operator-choice-button {
+  min-height: 52px;
+  padding: 10px 16px;
+  border: 1px solid #d7deea;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #182033;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.operator-choice-button:hover {
+  border-color: #8da8ff;
+  background: #f2f6ff;
+}
+
+.operator-choice-button.selected {
+  border-color: #4c78ff;
+  background: #edf3ff;
+  color: #315be8;
+  box-shadow: 0 0 0 1px rgba(76, 120, 255, 0.16);
+}
+
+@media (max-width: 800px) {
+  .operator-buttons {
+    grid-template-columns: repeat(2, minmax(110px, 1fr));
+  }
+}
+
+    
   </style>
 </head>
 <body>
@@ -221,17 +261,18 @@
     <div class="event-meta-section">
       <div class="event-meta-grid">
         <div class="field-group">
-          <label for="reportingOperatorSelect">מפעיל מדווח</label>
-          <select id="reportingOperatorSelect">
+          <label>מפעיל מדווח</label>
+          <div id="reportingOperatorButtons" class="operator-buttons"></div>
+          <select id="reportingOperatorSelect" hidden>
             <option value="">בחר מפעיל...</option>
-            <option value="אגד">אגד</option>
-            <option value="אפיקים">אפיקים</option>
             <option value="דן">דן</option>
+            <option value="אגד">אגד</option>
+            <option value="קווים">קווים</option>
             <option value="מטרופולין">מטרופולין</option>
             <option value="סופרבוס">סופרבוס</option>
-            <option value="קווים">קווים</option>
+            <option value="אפיקים">אפיקים</option>
           </select>
-        </div>
+    </div>
 
         <div class="field-group">
           <label for="reportTimeInput">שעת דיווח</label>
@@ -2866,6 +2907,49 @@ function downloadStopCodesFile(stopCodes, fileName = 'stop_codes.txt') {
 }
 
 
+
+function initializeReportingOperatorButtons() {
+  const select = document.getElementById('reportingOperatorSelect');
+  const container = document.getElementById('reportingOperatorButtons');
+
+  if (!select || !container) return;
+
+  container.innerHTML = '';
+
+  [...select.options].forEach(option => {
+    if (!option.value) return;
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'operator-choice-button';
+    button.textContent = option.textContent.trim();
+    button.dataset.value = option.value;
+
+    if (option.value === select.value) {
+      button.classList.add('selected');
+    }
+
+    button.addEventListener('click', () => {
+      select.value = option.value;
+
+      container
+        .querySelectorAll('.operator-choice-button')
+        .forEach(item => item.classList.remove('selected'));
+
+      button.classList.add('selected');
+
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    container.appendChild(button);
+  });
+}
+
+document.addEventListener(
+  'DOMContentLoaded',
+  initializeReportingOperatorButtons
+);
+  
 
 document.getElementById('impactBtn').addEventListener('click', async () => {
   const btn = document.getElementById('impactBtn');
