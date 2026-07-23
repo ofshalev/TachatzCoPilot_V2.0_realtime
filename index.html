@@ -261,6 +261,7 @@
   cursor: ns-resize;
   user-select: none;
   caret-color: transparent;
+  pointer-events: none;
 }
 
     
@@ -291,9 +292,9 @@
           </select>
     </div>
 
-        <div class="field-group">
-          <label for="reportTimeInput">שעת דיווח</label>
-          <input id="reportTimeInput" type="time" />
+        <div class="field-group time-wheel-control" id="reportingTimeWheel">
+          <label for="reportingTimeInput">שעת דיווח</label>
+          <input id="reportingTimeInput" type="time">
         </div>
       </div>
 
@@ -2945,14 +2946,13 @@ function enableTimeWheelControl() {
     return;
   }
 
-timeInput.addEventListener('mousedown', event => {
-    event.preventDefault();
-    timeInput.focus();
-  });
+
 
   
-  timeInput.addEventListener(
-    'wheel',
+  const timeControl = document.getElementById('reportingTimeWheel');
+
+   timeControl.addEventListener(
+   'wheel',
     event => {
       event.preventDefault();
       event.stopPropagation();
