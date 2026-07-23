@@ -2936,13 +2936,17 @@ document.addEventListener('DOMContentLoaded', setCurrentReportingTime);
 
   
 function enableTimeWheelControl() {
-  const timeInput = document.getElementById('reportTime');
-  if (!timeInput) return;
+  const timeInput = document.getElementById('reportTimeInput');
+  if (!timeInput) {
+    console.error('Time input was not found');
+    return;
+  }
 
   timeInput.addEventListener(
     'wheel',
     event => {
       event.preventDefault();
+      event.stopPropagation();
 
       const currentValue = timeInput.value || '00:00';
       const [hours, minutes] = currentValue.split(':').map(Number);
@@ -2950,22 +2954,40 @@ function enableTimeWheelControl() {
       let totalMinutes = hours * 60 + minutes;
 
       const direction = event.deltaY < 0 ? 1 : -1;
-      const stepMinutes = event.shiftKey ? 60 : 1;
+      const changeAmount = event.shiftKey ? 60 : 1;
 
-      totalMinutes += direction * stepMinutes;
+      totalMinutes += direction * changeAmount;
       totalMinutes = (totalMinutes + 1440) % 1440;
 
-      const newHours = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
-      const newMinutes = String(totalMinutes % 60).padStart(2, '0');
+      const newHours = String(
+        Math.floor(totalMinutes / 60)
+      ).padStart(2, '0');
+
+      const newMinutes = String(
+        totalMinutes % 60
+      ).padStart(2, '0');
 
       timeInput.value = `${newHours}:${newMinutes}`;
 
-      timeInput.dispatchEvent(new Event('input', { bubbles: true }));
-      timeInput.dispatchEvent(new Event('change', { bubbles: true }));
+      timeInput.dispatchEvent(
+        new Event('input', { bubbles: true })
+      );
+
+      timeInput.dispatchEvent(
+        new Event('change', { bubbles: true })
+      );
     },
-    { passive: false }
+    {
+      passive: false,
+      capture: true
+    }
   );
 }
+
+document.addEventListener(
+  'DOMContentLoaded',
+  enableTimeWheelControl
+);
 
 document.addEventListener('DOMContentLoaded', enableTimeWheelControl);
   
