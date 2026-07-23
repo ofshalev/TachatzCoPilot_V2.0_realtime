@@ -250,10 +250,10 @@
 }
 
 #reportTimeInput {
-  width: 100%;
-  min-height: 64px;
-  padding: 10px 18px;
-  font-size: 30px;
+  width: 220px;
+  min-height: 58px;
+  padding: 8px 14px;
+  font-size: 28px;
   font-weight: 700;
   letter-spacing: 2px;
   text-align: center;
@@ -261,6 +261,15 @@
   cursor: ns-resize;
   user-select: none;
   caret-color: transparent;
+}
+
+#reportTimeInput::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
+.time-wheel-control {
+  align-items: center;
 }
 
     
