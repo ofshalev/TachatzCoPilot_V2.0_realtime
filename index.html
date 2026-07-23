@@ -2925,17 +2925,27 @@ function downloadStopCodesFile(stopCodes, fileName = 'stop_codes.txt') {
 
 function setCurrentReportingTime() {
   const timeInput = document.getElementById('reportTimeInput');
-  if (!timeInput) return;
+
+  if (!timeInput) {
+    console.error('reportingTimeInput was not found');
+    return;
+  }
 
   const now = new Date();
+
   const hours = String(now.getHours()).padStart(2, '0');
   const minutes = String(now.getMinutes()).padStart(2, '0');
 
   timeInput.value = `${hours}:${minutes}`;
+
+  timeInput.dispatchEvent(new Event('input', { bubbles: true }));
   timeInput.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
-document.addEventListener('DOMContentLoaded', setCurrentReportingTime);
+document.addEventListener('DOMContentLoaded', () => {
+  setCurrentReportingTime();
+  enableTimeWheelControl();
+});
 
   
 function enableTimeWheelControl() {
