@@ -259,7 +259,10 @@
   text-align: center;
   border-radius: 12px;
   cursor: ns-resize;
+  user-select: none;
+  caret-color: transparent;
 }
+
     
   </style>
 </head>
@@ -2942,6 +2945,12 @@ function enableTimeWheelControl() {
     return;
   }
 
+timeInput.addEventListener('mousedown', event => {
+    event.preventDefault();
+    timeInput.focus();
+  });
+
+  
   timeInput.addEventListener(
     'wheel',
     event => {
