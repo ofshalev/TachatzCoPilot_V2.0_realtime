@@ -261,7 +261,6 @@
   cursor: ns-resize;
   user-select: none;
   caret-color: transparent;
-  pointer-events: none;
 }
 
     
@@ -2951,46 +2950,36 @@ function enableTimeWheelControl() {
   
   const timeControl = document.getElementById('reportingTimeWheel');
 
-   timeControl.addEventListener(
-   'wheel',
-    event => {
-      event.preventDefault();
-      event.stopPropagation();
+   timeInput.addEventListener(
+  'wheel',
+  event => {
+    event.preventDefault();
+    event.stopPropagation();
 
-      const currentValue = timeInput.value || '00:00';
-      const [hours, minutes] = currentValue.split(':').map(Number);
+    const currentValue = timeInput.value || '00:00';
+    const [hours, minutes] = currentValue.split(':').map(Number);
 
-      let totalMinutes = hours * 60 + minutes;
+    let totalMinutes = hours * 60 + minutes;
 
-      const direction = event.deltaY < 0 ? 1 : -1;
-      const changeAmount = event.shiftKey ? 60 : 1;
+    const direction = event.deltaY < 0 ? 1 : -1;
+    const changeAmount = event.shiftKey ? 60 : 1;
 
-      totalMinutes += direction * changeAmount;
-      totalMinutes = (totalMinutes + 1440) % 1440;
+    totalMinutes += direction * changeAmount;
+    totalMinutes = (totalMinutes + 1440) % 1440;
 
-      const newHours = String(
-        Math.floor(totalMinutes / 60)
-      ).padStart(2, '0');
+    const newHours = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+    const newMinutes = String(totalMinutes % 60).padStart(2, '0');
 
-      const newMinutes = String(
-        totalMinutes % 60
-      ).padStart(2, '0');
+    timeInput.value = `${newHours}:${newMinutes}`;
 
-      timeInput.value = `${newHours}:${newMinutes}`;
-
-      timeInput.dispatchEvent(
-        new Event('input', { bubbles: true })
-      );
-
-      timeInput.dispatchEvent(
-        new Event('change', { bubbles: true })
-      );
-    },
-    {
-      passive: false,
-      capture: true
-    }
-  );
+    timeInput.dispatchEvent(new Event('input', { bubbles: true }));
+    timeInput.dispatchEvent(new Event('change', { bubbles: true }));
+  },
+  {
+    passive: false,
+    capture: true
+  }
+);
 }
 
 document.addEventListener(
