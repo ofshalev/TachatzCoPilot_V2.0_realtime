@@ -506,6 +506,20 @@ function compact(s) {
     .trim();
 }
 
+function setCurrentReportingTime() {
+  const timeInput = document.getElementById('reportTimeInput');
+  if (!timeInput) return;
+
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+
+  timeInput.value = `${hours}:${minutes}`;
+
+  timeInput.dispatchEvent(new Event('input', { bubbles: true }));
+  timeInput.dispatchEvent(new Event('change', { bubbles: true }));
+}
+  
 function normalizeStopName(s) {
   return cleanText(s)
     .replace(/["“”]/g, '')
