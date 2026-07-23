@@ -208,6 +208,9 @@
       .event-meta-grid { grid-template-columns:1fr; max-width:none; }
     }
 
+.operator-field {
+  grid-column: 1 / -1;
+}
 
 .operator-buttons {
   display: grid;
@@ -260,7 +263,7 @@
 
     <div class="event-meta-section">
       <div class="event-meta-grid">
-        <div class="field-group">
+        <div class="field-group operator-field">
           <label>מפעיל מדווח</label>
           <div id="reportingOperatorButtons" class="operator-buttons"></div>
           <select id="reportingOperatorSelect" hidden>
@@ -2922,13 +2925,13 @@ document.addEventListener('DOMContentLoaded', setCurrentReportingTime);
 
 
 function enableTimeWheelControl() {
-  const timeInput = document.getElementById('reportTime');
+  const timeInput = document.getElementById('reportTimeInput');
   if (!timeInput) return;
 
   timeInput.addEventListener(
     'wheel',
     event => {
-      if (document.activeElement !== timeInput) return;
+     
 
       event.preventDefault();
 
